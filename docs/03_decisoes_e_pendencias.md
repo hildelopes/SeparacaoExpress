@@ -12,14 +12,33 @@ Registro vivo. Cada resposta do negócio ou do consultor entra aqui com a data.
 | D4 | Posição virtual | **Recomendação: tipo de depósito novo `9EX`** (cópia do 999: estoque negativo permitido, sem UD, sem estratégias, estoque misto permitido), com uma posição fixa `EXPRESS`. Motivo: o 999 é a interface de diferenças; quants negativos do Express no 999 apareceriam na LI21 e poderiam ser lançados como diferença de inventário no MM por engano. Custo: uma entrada de customizing (consultor WM) e uma posição em LS01N. Alternativa sem customizing: posição `EXPRESS` no 999, com restrição de uso da LI21 por procedimento. |
 | D5 | Abrangência | DPFE para **qualquer** centro de destino (BAMO, CDII, CDTR, CFMA). O ponto de entrada no engine (`ZWM_ICENTROS`, status `R`) vale para todos os passos que têm remessa no DFC. |
 | D6 | HU | A HU existe **só na remessa de transferência**. A remessa de venda recebe o lote automaticamente no fim da transferência e não tem HU. |
+| D7 | Quem cria a HU | O RF, na confirmação da OT de picking, a partir da UD lida. As etiquetas de HU já estão impressas e são coladas conforme a necessidade. Pode haver várias HUs na mesma separação. |
+| D8 | PGI sem HU | Confirmado pela carga fechada: ela não cria HU e o PGI 862 acontece. Logo o PGI não exige embalagem. Pendência Q-HU2 encerrada. |
+| D9 | Para que serve a HU | Conferência de expedição Z (monitor `ZWMR0007`, transação ZWM007, tabelas `ZTWM_CONF_OV_H/U/D`): a conferência de carregamento é por carga (`TKNUM`) e por HU (`EXIDV`), com material, lote e quantidade conferida por item de remessa. Na carga fechada não há HU e a conferência é manual por pick list, pois são cargas de um único material. |
+
+## O problema da HU no Express
+
+Hoje a HU nasce na confirmação da OT de picking (RF) e é **embalada na remessa de
+transferência**. A conferência de expedição (ZWM007) lê essas HUs por carga. No Express a
+ordem se inverte: o PGI 862 da remessa de transferência acontece no dia 31 e a separação
+física vem depois. Uma remessa com saída de mercadoria lançada **não aceita mais embalagem**.
+Então a HU física criada na regularização não pode ser ligada à remessa de transferência.
+
+Caminhos possíveis, a decidir com a resposta das pendências abaixo:
+
+| Opção | Como | Impacto |
+|---|---|---|
+| A | A OT de regularização, ao ser confirmada, cria a HU **sem objeto** (HU avulsa com conteúdo material, lote, quantidade) e grava a ligação HU → carga/remessa na tabela `ZSEPEX_T_HU`. A conferência de expedição passa a aceitar HUs ligadas pela tabela Express. | Alteração no RF de confirmação (ou tela RF Z para o Express) e no RF de conferência de expedição. |
+| B | Para carga Express, a conferência de expedição usa as UDs lidas na confirmação da OT de regularização (LTAP) em vez de HU. | Alteração só na conferência de expedição; sem HU física. Perde a etiqueta de HU no palete. |
+| C | Carga Express sem conferência de expedição, como a carga fechada hoje (pick list). | Sem desenvolvimento no RF. Perde o controle de carregamento, que é justamente o problema da carga fechada. |
 
 ## Pendências abertas
 
 | ID | Pergunta | Por que importa |
 |---|---|---|
-| Q-HU1 | **Como a HU é criada na remessa de transferência hoje?** (a) no RF durante a confirmação da OT (HU de picking a partir da UD lida), (b) pela função `ZTM_EMBALARDT` a partir das UDs das OTs confirmadas, ou (c) manualmente na VL02N? | No Express, no dia 31 não existe OT física nem UD lida. Se a HU for criada a partir das UDs das OTs, a rotina não terá dados. Se for obrigatória para o PGI, o Express precisa criar uma HU "virtual" ou a embalagem precisa ficar opcional. |
-| Q-HU2 | O PGI 862 da remessa de transferência exige embalagem completa? (controle de embalagem da categoria de item, ou depósito 1030 gerenciado por HU) | Se exigir, o PGI do dia 31 falha sem HU. |
-| Q-HU3 | Na carga fechada atual, quem cria a HU da remessa de transferência, já que não há picking no RF? | Mostra o caminho que o Express pode reaproveitar. |
+| Q-RF1 | Qual programa RF confirma a OT de picking e embala a HU hoje (`LM03`/`LM05` modificados, ou `ZWMRF00xx`)? Está em algum repositório? | É onde a HU é criada; o Express precisa de uma variante que crie a HU sem remessa (opção A) ou de nada (opção B). |
+| Q-RF2 | Qual programa RF faz a conferência de expedição que grava `ZTWM_CONF_OV_*`? Está em algum repositório? Ele valida a HU contra o quê: conteúdo da HU (`VEPO`) ligado à remessa de transferência do grupo da carga? | Define se a opção A ou B é mais simples. |
+| Q-RF3 | A conferência de expedição é obrigatória para faturar a carga no VT02N (status 03 bloqueia?) | Se for, a opção C não serve. |
 | Q-LOTE | Regra de ajuste quando a UD do lote X não é encontrada na regularização (ver explicação abaixo). | Define a opção de ajuste da Z02. |
 
 ## A pergunta do lote, explicada
