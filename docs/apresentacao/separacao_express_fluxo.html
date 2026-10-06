@@ -1,0 +1,329 @@
+<title>Separação Express</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+/* Layout: página em uma coluna de leitura (72ch) com um simulador largo no centro;
+   lanes do fluxo em grade. Cores de estoque: físico (âmbar), MM (azul-aço),
+   virtual negativo (verde-água hachurado), destino (verde). */
+:root{
+  --bg:#f6f4ef; --surface:#ffffff; --fg:#1d2430; --muted:#5b6473; --line:#d9d4c8;
+  --accent:#c9641a; --accent-soft:#fbe9da;
+  --mm:#3b5f8a; --fis:#d9922b; --virt:#1f8a7a; --dest:#4a8a3b; --res:#8a6d3b;
+  --neg-bg:#e3f3f0; --warn:#b4451f;
+  --font-display:"Barlow Condensed","Arial Narrow",Arial,sans-serif;
+  --font-body:"IBM Plex Sans","Segoe UI",Roboto,sans-serif;
+}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
+  --bg:#171a20; --surface:#20242c; --fg:#e8e6df; --muted:#a3a89f; --line:#363b45;
+  --accent:#e98a44; --accent-soft:#3a2a1d;
+  --mm:#7aa3d6; --fis:#e2a94f; --virt:#4fc2ae; --dest:#7cc06a; --res:#c7a86a;
+  --neg-bg:#1c3330; --warn:#f08a62; color-scheme:dark } }
+:root[data-theme="dark"]{
+  --bg:#171a20; --surface:#20242c; --fg:#e8e6df; --muted:#a3a89f; --line:#363b45;
+  --accent:#e98a44; --accent-soft:#3a2a1d;
+  --mm:#7aa3d6; --fis:#e2a94f; --virt:#4fc2ae; --dest:#7cc06a; --res:#c7a86a;
+  --neg-bg:#1c3330; --warn:#f08a62; color-scheme:dark }
+
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--font-body);font-size:16px;line-height:1.55}
+.wrap{max-width:1080px;margin:0 auto;padding-block:32px 64px;padding-inline:clamp(16px,4vw,40px)}
+h1,h2,h3{font-family:var(--font-display);letter-spacing:.01em;text-wrap:balance;margin:0}
+h1{font-size:clamp(40px,7vw,64px);font-weight:700;line-height:.95}
+h2{font-size:clamp(26px,3.6vw,34px);font-weight:600;margin-top:56px;padding-top:16px;border-top:2px solid var(--fg)}
+h3{font-size:20px;font-weight:600}
+p{max-width:72ch}
+.eyebrow{font-family:var(--font-display);text-transform:uppercase;letter-spacing:.12em;font-size:14px;color:var(--accent);font-weight:600}
+.lead{font-size:19px;color:var(--muted);max-width:60ch;margin-top:12px}
+.muted{color:var(--muted)}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:18px 20px}
+.grid{display:grid;gap:16px}
+.grid.c2{grid-template-columns:repeat(auto-fit,minmax(280px,1fr))}
+.grid.c4{grid-template-columns:repeat(auto-fit,minmax(220px,1fr))}
+.pill{display:inline-block;font-family:var(--font-display);font-size:13px;letter-spacing:.08em;text-transform:uppercase;padding:2px 8px;border-radius:3px;border:1px solid currentColor}
+.pill.d31{color:var(--accent)} .pill.dias{color:var(--virt)}
+
+/* Problema: régua do fechamento */
+.regua{display:grid;grid-template-columns:1fr 1fr;gap:0;margin-top:20px;border:1px solid var(--line);border-radius:6px;overflow:hidden}
+.regua>div{padding:14px 16px;min-width:0}
+.regua .d{background:var(--accent-soft)}
+.regua .t{font-family:var(--font-display);font-size:22px;font-weight:600}
+
+/* Comparativo em lanes */
+.switch{display:inline-flex;border:1px solid var(--line);border-radius:6px;overflow:hidden;margin-top:18px}
+.switch button{font:600 15px var(--font-body);padding:10px 18px;border:0;background:var(--surface);color:var(--fg);cursor:pointer}
+.switch button[aria-pressed="true"]{background:var(--fg);color:var(--bg)}
+.switch button:focus-visible{outline:3px solid var(--accent);outline-offset:-3px}
+.lanes{margin-top:18px;display:grid;grid-template-columns:120px 1fr;border:1px solid var(--line);border-radius:6px;overflow:hidden;background:var(--surface)}
+.lane-h{padding:10px 12px;border-bottom:1px solid var(--line);border-right:1px solid var(--line);font-family:var(--font-display);font-size:15px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);display:flex;align-items:center}
+.lane{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(150px,1fr);gap:0;border-bottom:1px solid var(--line);min-width:0;overflow-x:auto}
+.cell{padding:12px 10px;border-right:1px dashed var(--line);min-height:84px;font-size:14px;line-height:1.35;position:relative}
+.cell:last-child{border-right:0}
+.step{border-radius:4px;padding:8px 10px;background:var(--bg);border:1px solid var(--line)}
+.step b{display:block;font-weight:600}
+.step.phys{border-color:var(--fis);background:color-mix(in srgb,var(--fis) 14%,var(--surface))}
+.step.virt{border-color:var(--virt);background:var(--neg-bg)}
+.step.key{border-color:var(--accent);box-shadow:inset 3px 0 0 var(--accent)}
+.when{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(150px,1fr);border-bottom:2px solid var(--fg)}
+.when div{padding:8px 10px;font-family:var(--font-display);font-size:15px;letter-spacing:.04em;text-transform:uppercase}
+.when .d31{color:var(--accent)} .when .dias{color:var(--virt)}
+.lane-body{min-width:0;overflow-x:auto}
+.lane-body>.when,.lane-body>.lane{min-width:900px}
+
+/* Simulador */
+.sim{margin-top:20px;display:grid;grid-template-columns:1fr;gap:16px}
+.sim-ctl{display:flex;flex-wrap:wrap;align-items:center;gap:10px}
+.sim-ctl button{font:600 15px var(--font-body);padding:10px 16px;border:1px solid var(--line);border-radius:6px;background:var(--surface);color:var(--fg);cursor:pointer}
+.sim-ctl button.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+.sim-ctl button:disabled{opacity:.45;cursor:default}
+.sim-ctl button:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.steps{display:flex;gap:6px;flex-wrap:wrap}
+.steps span{width:28px;height:28px;border-radius:50%;border:2px solid var(--line);display:grid;place-items:center;font:600 13px var(--font-display);color:var(--muted);font-variant-numeric:tabular-nums}
+.steps span.on{border-color:var(--accent);background:var(--accent);color:#fff}
+.steps span.done{border-color:var(--accent);color:var(--accent)}
+.sim-head{display:flex;flex-wrap:wrap;gap:10px 16px;align-items:baseline}
+.sim-head .t{font-family:var(--font-display);font-size:26px;font-weight:600}
+.bars{display:grid;grid-template-columns:150px 1fr 70px;gap:8px 12px;align-items:center;font-size:15px}
+.bars .lbl{text-align:right;color:var(--muted);line-height:1.2}
+.bars .lbl b{display:block;color:var(--fg);font-weight:600}
+.track{position:relative;height:28px;background:color-mix(in srgb,var(--line) 45%,transparent);border-radius:3px}
+.track::before{content:"";position:absolute;left:50%;top:-4px;bottom:-4px;width:2px;background:var(--fg);opacity:.6}
+.bar{position:absolute;top:4px;height:20px;border-radius:2px;transition:width .35s ease,left .35s ease,opacity .35s}
+.bar.mm{background:var(--mm)} .bar.fis{background:var(--fis)} .bar.dest{background:var(--dest)} .bar.s916{background:var(--muted)}
+.bar.virt{background:repeating-linear-gradient(135deg,var(--virt) 0 6px,transparent 6px 10px);border:1px solid var(--virt)}
+.bar.res{background:repeating-linear-gradient(135deg,var(--res) 0 4px,transparent 4px 8px);border:1px solid var(--res)}
+.val{font-variant-numeric:tabular-nums;font-weight:600;text-align:right}
+.val.neg{color:var(--virt)}
+.zero{grid-column:2;display:flex;justify-content:space-between;font-size:12px;color:var(--muted);padding:0 2px}
+.note{border-left:3px solid var(--accent);padding:10px 14px;background:var(--surface);font-size:15px}
+.legend{display:flex;flex-wrap:wrap;gap:12px 18px;font-size:14px;color:var(--muted);margin-top:6px}
+.legend i{display:inline-block;width:14px;height:14px;border-radius:2px;vertical-align:-2px;margin-right:6px}
+.chk{font-size:15px;display:grid;gap:6px;margin-top:8px}
+.chk div::before{content:"✓";color:var(--dest);font-weight:700;margin-right:8px}
+.chk div.x::before{content:"→";color:var(--accent)}
+
+/* Papéis e exceções */
+.role h3{display:flex;align-items:center;gap:10px}
+.role ul{margin:10px 0 0;padding-left:18px;font-size:15px}
+.role li{margin:4px 0}
+table{border-collapse:collapse;width:100%;font-size:15px;background:var(--surface)}
+th,td{text-align:left;padding:10px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-family:var(--font-display);font-size:14px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.tbl{overflow-x:auto;border:1px solid var(--line);border-radius:6px;margin-top:16px}
+.decide li{margin:8px 0}
+footer{margin-top:56px;font-size:13px;color:var(--muted);border-top:1px solid var(--line);padding-top:14px}
+@media (max-width:640px){
+  .regua{grid-template-columns:1fr}
+  .lanes{grid-template-columns:1fr}
+  .lane-h{border-right:0;border-bottom:1px solid var(--line)}
+  .bars{grid-template-columns:110px 1fr 56px;font-size:14px}
+}
+@media (prefers-reduced-motion: reduce){ .bar{transition:none} }
+</style>
+
+<div class="wrap">
+  <div class="eyebrow">Proposta para a Logística · DPFE → centros de faturamento</div>
+  <h1>Separação Express</h1>
+  <p class="lead">Faturar todas as cargas no último dia do mês sem esperar a separação física no WM, e separar nos dias seguintes com controle de RF.</p>
+
+  <h2>O problema no fechamento</h2>
+  <p>Hoje a carga só pode ter saída de mercadoria e faturamento depois que a transferência DPFE → centro de faturamento foi separada no WM (OT confirmada no RF). No último dia do mês chegam cerca de 1000 toneladas, e muitas cargas são faturadas no dia mas carregadas nos dias seguintes. A separação física vira o gargalo do faturamento.</p>
+  <div class="regua">
+    <div class="d"><div class="t">Dia 31 · até 00:00</div>Tudo precisa estar faturado. Hoje isso obriga a separação física de todas as cargas no mesmo dia.</div>
+    <div><div class="t">Dias 1 a 7</div>Carregamento real acontece aqui. Com o Express, a separação física também, com OT e leitura de UD no RF.</div>
+  </div>
+
+  <h2>Fluxo atual e fluxo Express, lado a lado</h2>
+  <p>Mesmas pessoas, mesmas transações. O que muda é <strong>quando</strong> a separação física acontece e <strong>quem</strong> espera por ela.</p>
+  <div class="switch" role="group" aria-label="Escolher fluxo">
+    <button id="btn-atual" aria-pressed="true" onclick="setFlow('atual')">Fluxo atual</button>
+    <button id="btn-express" aria-pressed="false" onclick="setFlow('express')">Fluxo Express</button>
+  </div>
+  <div class="lanes" id="lanes"></div>
+  <div class="legend">
+    <span><i style="background:color-mix(in srgb,var(--fis) 30%,var(--surface));border:1px solid var(--fis)"></i>Movimento físico no armazém</span>
+    <span><i style="background:var(--neg-bg);border:1px solid var(--virt)"></i>Passo novo do Express (só sistema)</span>
+    <span><i style="background:var(--surface);border:1px solid var(--line);box-shadow:inset 3px 0 0 var(--accent)"></i>Ação do encarregado no Monitor de Carga</span>
+  </div>
+
+  <h2>Como o estoque se comporta</h2>
+  <p>Exemplo com 100 unidades de um material e lote. Avance os passos e veja onde o saldo está em cada momento. A linha do meio é o zero: barra à esquerda é saldo negativo.</p>
+  <div class="card sim">
+    <div class="sim-ctl">
+      <div class="switch" role="group" aria-label="Fluxo do simulador" style="margin:0">
+        <button id="sbtn-atual" aria-pressed="true" onclick="setSimFlow('atual')">Atual</button>
+        <button id="sbtn-express" aria-pressed="false" onclick="setSimFlow('express')">Express</button>
+      </div>
+      <button id="prev" onclick="go(-1)">← Anterior</button>
+      <button id="next" class="primary" onclick="go(1)">Próximo →</button>
+      <div class="steps" id="dots"></div>
+    </div>
+    <div class="sim-head"><span class="pill" id="sim-when"></span><span class="t" id="sim-title"></span></div>
+    <p id="sim-desc" style="margin:0"></p>
+    <div class="bars" id="bars"></div>
+    <div class="legend">
+      <span><i style="background:var(--mm)"></i>Estoque MM (contábil)</span>
+      <span><i style="background:var(--fis)"></i>Paletes nos bins (UD)</span>
+      <span><i style="background:repeating-linear-gradient(135deg,var(--res) 0 4px,transparent 4px 8px);border:1px solid var(--res)"></i>Reservado por OT aberta</span>
+      <span><i style="background:repeating-linear-gradient(135deg,var(--virt) 0 6px,transparent 6px 10px);border:1px solid var(--virt)"></i>Posição virtual (negativo)</span>
+      <span><i style="background:var(--dest)"></i>Centro de faturamento</span>
+    </div>
+    <div class="note" id="sim-note"></div>
+  </div>
+
+  <h2>O que muda para cada pessoa</h2>
+  <div class="grid c4" style="margin-top:16px">
+    <div class="card role"><h3>Encarregado</h3><ul>
+      <li>Marca <em>Separação Express</em> no Monitor de Carga antes de criar o grupo da carga.</li>
+      <li>Não precisa mais acionar "Criar OT" nem esperar o RF para autorizar a saída.</li>
+      <li>Acompanha as pendências de separação em um relatório por carga, com idade em dias.</li>
+    </ul></div>
+    <div class="card role"><h3>Operador RF</h3><ul>
+      <li>Nos dias seguintes, recebe OTs de regularização na LM45, com UD e lote definidos.</li>
+      <li>Lê a UD como hoje. Se a UD não estiver lá, confirma com diferença e o encarregado redireciona para outra UD do mesmo lote.</li>
+      <li>Não cria HU para carga Express na fase 1.</li>
+    </ul></div>
+    <div class="card role"><h3>Faturamento</h3><ul>
+      <li>Fatura no VT02N no dia 31, como hoje.</li>
+      <li>Carga Express já nasce dispensada da conferência de expedição (tabela ZWMT011), como a carga fechada.</li>
+      <li>NF de transferência, CFOP e lotes iguais ao processo atual.</li>
+    </ul></div>
+    <div class="card role"><h3>Fiscal e contábil</h3><ul>
+      <li>Nenhuma mudança em NF ou CFOP.</li>
+      <li>Na virada do mês o WM mostra um saldo negativo na posição virtual igual ao que ainda falta separar. O relatório de pendências é a evidência.</li>
+      <li>Estoque total do WM continua igual ao MM em todos os momentos.</li>
+    </ul></div>
+  </div>
+
+  <h2>Situações fora do normal</h2>
+  <div class="tbl"><table>
+    <tr><th>Situação</th><th>O que acontece</th><th>Quem resolve</th></tr>
+    <tr><td>UD do lote não encontrada</td><td>Operador confirma a OT com diferença. O saldo volta como pendente e uma nova OT é criada para outra UD do mesmo lote.</td><td>Operador RF e encarregado</td></tr>
+    <tr><td>Lote físico diferente do lote da remessa</td><td>Fase 1: não permitido, a OT só aceita o lote da remessa. Fase 2: ajuste de lote nos dois centros, se o fiscal aprovar.</td><td>Encarregado, fiscal</td></tr>
+    <tr><td>Separação passou de 7 dias</td><td>Carga fica em destaque no relatório e no e-mail diário. A separação continua.</td><td>Logística</td></tr>
+    <tr><td>Outra carga quer o mesmo palete</td><td>Não consegue. A OT de regularização aberta reserva a UD desde o dia 31.</td><td>Sistema</td></tr>
+    <tr><td>Carga cancelada antes da separação virtual</td><td>Estorno pelo Monitor, como hoje.</td><td>Encarregado</td></tr>
+    <tr><td>Carga cancelada depois da NF</td><td>Processo atual de estorno (VL09, NF). As OTs de regularização abertas são estornadas.</td><td>Faturamento e logística</td></tr>
+  </table></div>
+
+  <h2>Antes de desenvolver</h2>
+  <p>Três confirmações da Logística e uma prova em QAS pelo consultor WM.</p>
+  <ul class="decide">
+    <li><strong>Express substitui a carga fechada?</strong> A proposta é sim: a carga fechada continua existindo até o Express estar estável e depois sai.</li>
+    <li><strong>Troca de lote.</strong> Na fase 1 o operador não pode trocar o lote. Confirmar se isso é aceitável para a operação.</li>
+    <li><strong>Prazo de 7 dias.</strong> Só alerta, não bloqueia. Confirmar.</li>
+    <li><strong>Prova em QAS.</strong> Tipo de depósito virtual com saldo negativo e OT da remessa confirmada contra ele. A carga fechada já faz algo parecido na posição 999/SEPARAÇÃO, por isso a expectativa é positiva.</li>
+  </ul>
+
+  <footer>Separação Express · especificação v0.4 · repositório SeparacaoExpress, pasta docs. Valores do simulador são ilustrativos.</footer>
+</div>
+
+<script>
+// ---------- Fluxos em lanes ----------
+const LANES = ["Encarregado","Sistema","Operador RF","Faturamento"];
+const FLOWS = {
+  atual: {
+    when: [["d31","Dia 31"],["d31","Dia 31"],["d31","Dia 31 · gargalo"],["d31","Dia 31"],["d31","Dia 31"],["d31","Dia 31"]],
+    cells: [
+      // Encarregado
+      [{k:1,b:"Criar Grupo R./Ordem",t:"Monitor de Carga, na carga"},null,null,{k:1,b:"Saída Merc.",t:"autoriza a saída da transferência"},null,null],
+      // Sistema
+      [{b:"Pedido, remessa de transferência, lotes, transporte, grupo",t:"ZWM_ICENTROS em job"},{k:1,b:"Criar OT",t:"OT de picking do grupo"},null,{b:"PGI 862 e entrada 861",t:"lotes copiados para as remessas de venda"},null,null],
+      // Operador RF
+      [null,null,{p:1,b:"Separa fisicamente",t:"lê UD, cola HU, confirma OT. Todas as cargas no mesmo dia"},null,{p:1,b:"Conferência de expedição",t:"por HU, no RF"},null],
+      // Faturamento
+      [null,null,null,null,null,{b:"VT02N",t:"NF de transferência e faturamento da carga"}]
+    ]
+  },
+  express: {
+    when: [["d31","Dia 31"],["d31","Dia 31"],["d31","Dia 31"],["d31","Dia 31"],["dias","Dias 1 a 7"],["dias","Dias 1 a 7"]],
+    cells: [
+      [{k:1,b:"Criar Grupo R./Ordem",t:"com Separação Express marcada"},null,{k:1,b:"Saída Merc.",t:"sem esperar o RF"},null,null,{b:"Acompanha pendências",t:"relatório por carga e e-mail diário"}],
+      [{b:"Pedido, remessa de transferência, lotes, transporte, grupo",t:"igual ao fluxo atual; carga dispensada da conferência"},{v:1,b:"Separação virtual",t:"OT confirmada contra a posição virtual; OTs de regularização criadas e UDs reservadas"},{b:"PGI 862 e entrada 861",t:"lotes copiados para as remessas de venda"},null,null,{v:1,b:"Fecha a pendência",t:"quando o saldo negativo da posição virtual zera"}],
+      [null,null,null,null,{p:1,b:"LM45: confirma OT de regularização",t:"lê a UD, no ritmo do carregamento"},null],
+      [null,null,null,{b:"VT02N",t:"faturado no dia 31"},null,null]
+    ]
+  }
+};
+function setFlow(f){
+  document.getElementById('btn-atual').setAttribute('aria-pressed',f==='atual');
+  document.getElementById('btn-express').setAttribute('aria-pressed',f==='express');
+  const F=FLOWS[f]; const root=document.getElementById('lanes'); root.innerHTML='';
+  const body=document.createElement('div'); body.className='lane-body';
+  const when=document.createElement('div'); when.className='when';
+  F.when.forEach(w=>{const d=document.createElement('div'); d.className=w[0]; d.textContent=w[1]; when.appendChild(d);});
+  body.appendChild(when);
+  F.cells.forEach(row=>{
+    const lane=document.createElement('div'); lane.className='lane';
+    row.forEach(c=>{const cell=document.createElement('div'); cell.className='cell';
+      if(c){const s=document.createElement('div'); s.className='step'+(c.p?' phys':'')+(c.v?' virt':'')+(c.k?' key':'');
+        s.innerHTML='<b></b><span class="muted"></span>'; s.querySelector('b').textContent=c.b; s.querySelector('span').textContent=c.t; cell.appendChild(s);}
+      lane.appendChild(cell);});
+    body.appendChild(lane);
+  });
+  const labels=document.createElement('div');
+  const lh=document.createElement('div'); lh.className='lane-h'; lh.textContent='Quando'; labels.appendChild(lh);
+  LANES.forEach(n=>{const d=document.createElement('div'); d.className='lane-h'; d.textContent=n; labels.appendChild(d);});
+  root.appendChild(labels); root.appendChild(body);
+  // equalize heights after layout
+  requestAnimationFrame(()=>{
+    const lanesEls=body.querySelectorAll('.lane'); const labEls=labels.querySelectorAll('.lane-h');
+    labEls[0].style.minHeight=when.offsetHeight+'px';
+    lanesEls.forEach((l,i)=>{labEls[i+1].style.minHeight=l.offsetHeight+'px';});
+  });
+}
+
+// ---------- Simulador ----------
+// stores: mm (MM DPFE), fis (paletes nos bins), res (reservado, sobreposto a fis), virt (posição virtual), s916 (interface saída), dest (centro faturamento)
+const SIM = {
+  atual: [
+    {when:"d31",wl:"Dia 31",t:"Antes da separação",d:"Carga com remessas de venda criada. Estoque parado nos bins do DPFE.",s:{mm:100,fis:100,res:0,virt:0,s916:0,dest:0},n:"Ponto de partida igual nos dois fluxos."},
+    {when:"d31",wl:"Dia 31",t:"OT de picking criada",d:"Encarregado aciona Criar OT. A OT aberta reserva os paletes para esta carga.",s:{mm:100,fis:100,res:100,virt:0,s916:0,dest:0},n:"A reserva impede que outra carga use os mesmos paletes."},
+    {when:"d31",wl:"Dia 31",t:"RF confirma a OT",d:"Operador lê a UD e confirma. O estoque sai do bin para a área de saída (916) ainda no dia 31.",s:{mm:100,fis:0,res:0,virt:0,s916:100,dest:0},n:"Este passo é o gargalo do fechamento: precisa acontecer para todas as cargas antes da saída de mercadoria."},
+    {when:"d31",wl:"Dia 31",t:"Saída 862 e entrada 861",d:"Encarregado autoriza a saída. MM do DPFE baixa, centro de faturamento recebe com os lotes.",s:{mm:0,fis:0,res:0,virt:0,s916:0,dest:100},n:"Só agora o faturamento pode acontecer."},
+    {when:"d31",wl:"Dia 31",t:"Faturamento",d:"Conferência de expedição por HU e VT02N.",s:{mm:0,fis:0,res:0,virt:0,s916:0,dest:100},n:"Fim do fluxo atual. Tudo dentro do dia 31."}
+  ],
+  express: [
+    {when:"d31",wl:"Dia 31",t:"Antes da separação",d:"Carga com remessas de venda criada. Estoque parado nos bins do DPFE.",s:{mm:100,fis:100,res:0,virt:0,s916:0,dest:0},n:"Ponto de partida igual nos dois fluxos."},
+    {when:"d31",wl:"Dia 31",t:"Separação virtual",d:"Sistema confirma a OT da remessa de transferência contra a posição virtual. A área de saída recebe 100 e a posição virtual fica com −100. Nenhum palete se moveu.",s:{mm:100,fis:100,res:0,virt:-100,s916:100,dest:0},n:"Total do WM: 100 + 100 − 100 = 100, igual ao MM. O negativo é a dívida de separação física."},
+    {when:"d31",wl:"Dia 31",t:"OTs de regularização criadas",d:"No mesmo instante o sistema cria as OTs dos bins reais para a posição virtual, com UD e lote. Elas ficam abertas, aguardando o RF, e reservam os paletes.",s:{mm:100,fis:100,res:100,virt:-100,s916:100,dest:0},n:"Outra carga não consegue usar esses paletes nos dias seguintes."},
+    {when:"d31",wl:"Dia 31",t:"Saída 862 e entrada 861",d:"Encarregado autoriza a saída sem esperar o RF. MM do DPFE baixa, centro de faturamento recebe com os lotes, remessas de venda recebem os lotes.",s:{mm:0,fis:100,res:100,virt:-100,s916:0,dest:100},n:"Os paletes continuam fisicamente no DPFE, reservados. Contabilmente já estão no centro de faturamento."},
+    {when:"d31",wl:"Dia 31",t:"Faturamento",d:"VT02N no dia 31. Carga dispensada da conferência de expedição por HU.",s:{mm:0,fis:100,res:100,virt:-100,s916:0,dest:100},n:"Meta do fechamento cumprida. A separação física fica para os dias seguintes."},
+    {when:"dias",wl:"Dias 1 a 7",t:"LM45: operador confirma a OT de regularização",d:"Operador lê a UD e confirma. O palete sai do bin e zera o negativo da posição virtual.",s:{mm:0,fis:0,res:0,virt:0,s916:0,dest:100},n:"Pendência fechada. WM e MM batem, LX23 sem diferença. Se a UD não estiver lá, confirma com diferença e o encarregado redireciona para outra UD do mesmo lote."}
+  ]
+};
+const STORES=[["mm","Estoque MM","DPFE"],["fis","Paletes nos bins","WM DPFE, por UD"],["virt","Posição virtual","WM DPFE, 9EX/EXPRESS"],["s916","Área de saída","WM DPFE, 916"],["dest","Centro de faturamento","MM destino"]];
+let simFlow='atual', step=0;
+function setSimFlow(f){simFlow=f; step=0;
+  document.getElementById('sbtn-atual').setAttribute('aria-pressed',f==='atual');
+  document.getElementById('sbtn-express').setAttribute('aria-pressed',f==='express');
+  render();}
+function go(d){const n=SIM[simFlow].length; step=Math.max(0,Math.min(n-1,step+d)); render();}
+function render(){
+  const steps=SIM[simFlow]; const st=steps[step];
+  document.getElementById('prev').disabled=step===0;
+  document.getElementById('next').disabled=step===steps.length-1;
+  const dots=document.getElementById('dots'); dots.innerHTML='';
+  steps.forEach((_,i)=>{const s=document.createElement('span'); s.textContent=i+1; s.className=i===step?'on':(i<step?'done':''); dots.appendChild(s);});
+  const w=document.getElementById('sim-when'); w.textContent=st.wl; w.className='pill '+st.when;
+  document.getElementById('sim-title').textContent=st.t;
+  document.getElementById('sim-desc').textContent=st.d;
+  document.getElementById('sim-note').textContent=st.n;
+  const bars=document.getElementById('bars'); bars.innerHTML='';
+  STORES.forEach(([k,name,sub])=>{
+    const v=st.s[k];
+    const lbl=document.createElement('div'); lbl.className='lbl'; lbl.innerHTML='<b></b><span></span>'; lbl.querySelector('b').textContent=name; lbl.querySelector('span').textContent=sub;
+    const tr=document.createElement('div'); tr.className='track';
+    const pct=Math.abs(v)/100*50; // half-width scale
+    const bar=document.createElement('div'); bar.className='bar '+(k==='virt'?'virt':k==='s916'?'s916':k);
+    if(v>=0){bar.style.left='50%'; bar.style.width=pct+'%';}else{bar.style.left=(50-pct)+'%'; bar.style.width=pct+'%';}
+    bar.style.opacity=v===0?0:1; tr.appendChild(bar);
+    if(k==='fis' && st.s.res>0){const r=document.createElement('div'); r.className='bar res'; r.style.left='50%'; r.style.width=(st.s.res/100*50)+'%'; r.title='Reservado por OT aberta'; tr.appendChild(r);}
+    const val=document.createElement('div'); val.className='val'+(v<0?' neg':''); val.textContent=(v>0?'+':'')+v+(k==='fis'&&st.s.res>0?' ⟂':'');
+    bars.appendChild(lbl); bars.appendChild(tr); bars.appendChild(val);
+  });
+  const z=document.createElement('div'); z.className='zero'; z.innerHTML='<span>−100</span><span>0</span><span>+100</span>'; bars.appendChild(z);
+  const legend=document.createElement('div'); legend.className='muted'; legend.style.gridColumn='1 / -1'; legend.style.fontSize='13px';
+  legend.textContent = st.s.res>0 ? '⟂ = quantidade reservada por OT aberta (paletes continuam no bin, mas só esta carga pode usá-los).' : '';
+  bars.appendChild(legend);
+}
+setFlow('atual'); render();
+</script>
