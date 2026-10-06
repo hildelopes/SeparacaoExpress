@@ -16,6 +16,10 @@ Registro vivo. Cada resposta do negócio ou do consultor entra aqui com a data.
 | D8 | PGI sem HU | Confirmado pela carga fechada: ela não cria HU e o PGI 862 acontece. Logo o PGI não exige embalagem. Pendência Q-HU2 encerrada. |
 | D9 | Para que serve a HU | Conferência de expedição Z (monitor `ZWMR0007`, transação ZWM007, tabelas `ZTWM_CONF_OV_H/U/D`): a conferência de carregamento é por carga (`TKNUM`) e por HU (`EXIDV`), com material, lote e quantidade conferida por item de remessa. Na carga fechada não há HU e a conferência é manual por pick list, pois são cargas de um único material. |
 
+| D10 | RF de picking | LM05 existe no coletor, mas o picking normal com HU usa o RF padrão do depósito. Casos isolados confirmam OT direto no SAP sem HU. Para o Express vale o que for definido aqui. |
+| D11 | Conferência de expedição | É obrigatória para faturar, mas a tabela `ZWMT011` cadastra cargas dispensadas (controle manual hoje; a carga fechada já grava). O Express grava a carga na `ZWMT011` no registro, dispensando a conferência na fase 1. |
+| D12 | RF `ZWMRF0002` | É a conferência de expedição (transação ZWMRF002). Monta a lista de HUs por `VEKP` com objeto = remessa de transferência do grupo da carga e exige `KOSTK = C` e `LVSTK = C` nas remessas. Com PGI já lançado não aceita conferência para tipo de transporte de transferência. Confirma que a HU só nasce embalada na remessa de transferência antes do PGI. |
+
 ## O problema da HU no Express
 
 Hoje a HU nasce na confirmação da OT de picking (RF) e é **embalada na remessa de
@@ -36,9 +40,9 @@ Caminhos possíveis, a decidir com a resposta das pendências abaixo:
 
 | ID | Pergunta | Por que importa |
 |---|---|---|
-| Q-RF1 | Qual programa RF confirma a OT de picking e embala a HU hoje (`LM03`/`LM05` modificados, ou `ZWMRF00xx`)? Está em algum repositório? | É onde a HU é criada; o Express precisa de uma variante que crie a HU sem remessa (opção A) ou de nada (opção B). |
-| Q-RF2 | Qual programa RF faz a conferência de expedição que grava `ZTWM_CONF_OV_*`? Está em algum repositório? Ele valida a HU contra o quê: conteúdo da HU (`VEPO`) ligado à remessa de transferência do grupo da carga? | Define se a opção A ou B é mais simples. |
-| Q-RF3 | A conferência de expedição é obrigatória para faturar a carga no VT02N (status 03 bloqueia?) | Se for, a opção C não serve. |
+| Q-RF1 | Respondida (D10). | |
+| Q-RF2 | Respondida (D12): `ZWMRF0002`, HU por `VEKP/VEPO` da remessa de transferência. | |
+| Q-RF3 | Respondida (D11): obrigatória, dispensável por `ZWMT011`. Fase 1 usa a dispensa (opção C); opção A fica para a fase 2. | |
 | Q-LOTE | Regra de ajuste quando a UD do lote X não é encontrada na regularização (ver explicação abaixo). | Define a opção de ajuste da Z02. |
 
 ## A pergunta do lote, explicada
