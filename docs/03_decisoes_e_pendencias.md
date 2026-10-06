@@ -20,6 +20,8 @@ Registro vivo. Cada resposta do negócio ou do consultor entra aqui com a data.
 | D11 | Conferência de expedição | É obrigatória para faturar, mas a tabela `ZWMT011` cadastra cargas dispensadas (controle manual hoje; a carga fechada já grava). O Express grava a carga na `ZWMT011` no registro, dispensando a conferência na fase 1. |
 | D12 | RF `ZWMRF0002` | É a conferência de expedição (transação ZWMRF002). Monta a lista de HUs por `VEKP` com objeto = remessa de transferência do grupo da carga e exige `KOSTK = C` e `LVSTK = C` nas remessas. Com PGI já lançado não aceita conferência para tipo de transporte de transferência. Confirma que a HU só nasce embalada na remessa de transferência antes do PGI. |
 
+| D13 | Armazém Geral | O Express também vale para a carga do depositante (DPFE 1101 → CFMA 1102, retorno ZRTA pela classe `ZCL_ARMAZEM_GERAL`). O controle do pacote ZSEPEX passa a ser por remessa de saída, com a origem como atributo (`05_analise_armazem_geral_express.md`). |
+
 ## O problema da HU no Express
 
 Hoje a HU nasce na confirmação da OT de picking (RF) e é **embalada na remessa de
