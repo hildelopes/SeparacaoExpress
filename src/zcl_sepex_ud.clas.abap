@@ -44,7 +44,7 @@ CLASS zcl_sepex_ud DEFINITION
   PRIVATE SECTION.
     TYPES: BEGIN OF ty_lqua,
              lgnum TYPE lgnum,
-             lqnum TYPE lqnum,
+             lqnum TYPE lqua-lqnum,
              matnr TYPE matnr,
              werks TYPE werks_d,
              lgort TYPE lgort_d,
