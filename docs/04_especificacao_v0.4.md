@@ -22,8 +22,12 @@ Carga** (`ZWMR0010`), ao lado da carga fechada, que ela substitui. No dia do fec
    não confirmadas), que reservam as UDs. Elas ficam aguardando o RF.
 5. Saída de mercadoria, entrada no destino, lotes nas remessas de venda e faturamento
    seguem exatamente o fluxo atual (`SAIDA_MERC`, 862, 861, `ZFWM_ADD_CHARG_TO_DT`, VT02N).
-6. Nos dias seguintes o operador confirma as OTs de regularização na **LM45**, lendo a UD.
-   O job de sincronização fecha os itens quando o negativo da posição virtual zera.
+6. Nos dias seguintes o operador confirma as OTs de regularização no **RF Express**
+   (`ZSEPEXRF`), lendo a UD do palete e, em quantidade parcial, a etiqueta de HU
+   pré-impressa. Cada leitura vira um volume da carga. O job de sincronização fecha os
+   itens quando o negativo da posição virtual zera.
+6a. No carregamento, a conferência de expedição (`ZWMRF0002`) lê os volumes da carga
+   Express como lê HUs hoje.
 7. O relatório de pendências mostra o que falta separar, por carga, com idade, e envia
    e-mail diário.
 
@@ -59,9 +63,10 @@ Total WM = total MM em todas as linhas. LX23 fecha em zero.
 | Objeto | Tipo | Campos principais |
 |---|---|---|
 | `ZSEPEX_T_PAR` | Tabela | `LGNUM` (chave), `LGTYP_VIRT`, `LGBER_VIRT`, `LGPLA_VIRT`, `BWLVS_REG`, `OT_IMEDIATA`, `DIAS_ALERTA`, `EMAIL_DEST` (string), `AJUSTE_LOTE` (permite 309) |
-| `ZSEPEX_T_CAB` | Tabela | `NUMERO` (ZWM_ICENTROS, chave), `TKNUM`, `LGNUM`, `REFNR`, `STATUS`, `DT_VIRT`, `DT_PGI`, `DT_CONCL`, `ERNAM/ERDAT/ERZET`, `AENAM/AEDAT/AEZET` |
-| `ZSEPEX_T_ITM` | Tabela | `NUMERO`, `VBELN`, `POSNR` (chave; item de lote da remessa de transferência), `MATNR`, `CHARG`, `MENGE`, `MEINS`, `TANUM_VIRT`, `TAPOS_VIRT`, `QTD_REGUL`, `STATUS` |
-| `ZSEPEX_T_OT` | Tabela | `LGNUM`, `TANUM`, `TAPOS` (chave), `NUMERO`, `VBELN`, `POSNR`, `MATNR`, `CHARG`, `VLENR`, `VSOLM`, `NISTM`, `NDIFA`, `PQUIT`, `AEDAT` |
+| `ZSEPEX_T_CAB` | Tabela | `LGNUM`, `VBELN` (chave; remessa de saída do DPFE: transferência ou ZRTA), `ORIGEM` (`I` intercentros, `A` armazém geral), `ORIGEM_ID` (número `ZWM_ICENTROS` ou GUID `ZAGT_LOG`), `TKNUM`, `REFNR`, `STATUS`, `DT_VIRT`, `DT_PGI`, `DT_CONCL`, `ERNAM/ERDAT/ERZET`, `AENAM/AEDAT/AEZET` |
+| `ZSEPEX_T_ITM` | Tabela | `LGNUM`, `VBELN`, `POSNR` (chave; item de lote da remessa), `MATNR`, `CHARG`, `MENGE`, `MEINS`, `TANUM_VIRT`, `TAPOS_VIRT`, `QTD_REGUL`, `STATUS` |
+| `ZSEPEX_T_OT` | Tabela | `LGNUM`, `TANUM`, `TAPOS` (chave), `VBELN`, `POSNR`, `MATNR`, `CHARG`, `VLENR`, `VSOLM`, `NISTM`, `NDIFA`, `PQUIT`, `AEDAT` |
+| `ZSEPEX_T_VOL` | Tabela | `LGNUM`, `VOLUME` (chave; UD ou etiqueta), `TKNUM`, `VBELN`, `POSNR`, `MATNR`, `CHARG`, `MENGE`, `MEINS`, `TANUM`, `TAPOS`, `TIPO` (`U` UD inteira, `E` etiqueta parcial), `ERNAM/ERDAT/ERZET` |
 | `ZSEPEX_D_STATUS` | Domínio | `0` Registrado, `1` Separação virtual, `2` OT regularização criada, `3` PGI efetuado, `4` Em regularização, `5` Concluído, `9` Cancelado |
 | `ZSEPEX_S_PEND`, `ZSEPEX_S_REG`, `ZSEPEX_S_LOG` | Estruturas | Saídas ALV |
 
@@ -69,7 +74,7 @@ Total WM = total MM em todas as linhas. LX23 fecha em zero.
 
 | Objeto | Responsabilidade |
 |---|---|
-| `ZSEPEX_SEPARA_VIRTUAL` (FM, grupo `ZSEPEX_FG`) | Chamado pelo engine em status `R` com `EXPRESS = X`. Para cada remessa de `ZWM_IC_EF` com grupo: lê itens de lote da LIPS, monta `IT_DELIT` com origem virtual, `L_TO_CREATE_DN` + `L_TO_CONFIRM` (padrão dos passos 8 a 10 de `Z_WM_CONFIRMA_ICENTRO`), grava `ZSEPEX_T_CAB/ITM` status 1. Se `OT_IMEDIATA`, chama `ZSEPEX_CRIA_OT_REGUL`. Exceções no padrão do engine (`T_RETURN`, `ZF_LOG_ERROR`). |
+| `ZSEPEX_SEPARA_VIRTUAL` (FM, grupo `ZSEPEX_FG`) | Interface por remessa: `I_LGNUM`, `I_VBELN`, `I_REFNR` (opcional), `I_ORIGEM`, `I_ORIGEM_ID`, `I_TKNUM`. Lê itens de lote da LIPS, monta `IT_DELIT` com origem virtual, `L_TO_CREATE_DN` + `L_TO_CONFIRM` (padrão dos passos 8 a 10 de `Z_WM_CONFIRMA_ICENTRO`), grava `ZSEPEX_T_CAB/ITM` status 1. Se `OT_IMEDIATA`, chama `ZSEPEX_CRIA_OT_REGUL`. Chamada pelo engine `ZWM_ICENTROS` (origem `I`, uma vez por remessa do grupo) e pela classe `ZCL_ARMAZEM_GERAL` (origem `A`). |
 | `ZSEPEX_CRIA_OT_REGUL` (FM) | Para os itens pendentes de um processo: escolhe UDs com as regras de `ZF_PREENCHE_SIMULACAO` e `ZF_FILTRA_LQUA_DISPONIVEL` (mesmo lote do item, `MLGN-LHMG1`, prioridade `999/SEPARACAO`, sem OT aberta, posição não bloqueada), cria OT por remessa com `L_TO_CREATE_MULTIPLE` (itens por UD, destino `9EX/EXPRESS`, `BWLVS_REG`), grava `ZSEPEX_T_OT`, status 2. Saldo não coberto fica pendente com motivo. |
 | `ZSEPEX_SALDO_PENDENTE` (FM) | Retorna, por material (e lote), a quantidade Express ainda sem OT de regularização. Usada pelo monitor na validação de saldo. |
 | `ZCL_SEPEX_CONTROLE` | Persistência, transições de status, bloqueio `EZSEPEX_CAB` |
@@ -87,6 +92,7 @@ Total WM = total MM em todas as linhas. LX23 fecha em zero.
 | `ZSEPEX_R_PENDENCIAS` | `ZSEPEX03` | Pendências com idade e destaque acima de `DIAS_ALERTA`, totais por carga e por data de PGI, versão de fechamento com `LQUA` negativa em `9EX`, envio por e-mail (job diário). |
 | `ZSEPEX_R_SINCRONIZAR` | `ZSEPEX04` | Job (30 min): lê `LTAP` das OTs de regularização (`PQUIT`, `NISTM`, `NDIFA`), atualiza `QTD_REGUL`, status 4 e 5; lê `VBUK-WBSTK` da remessa de transferência para `DT_PGI` e status 3; detecta estorno de PGI → status 9. |
 | `ZSEPEX_R_PARAM` | `ZSEPEX00` | Manutenção de `ZSEPEX_T_PAR` (ou SM30). |
+| `ZSEPEX_RF` (pool de módulos, padrão `ZWMRF0002`) | `ZSEPEXRF` | RF de regularização: lista as OTs de regularização da carga ou da OT lida; operador lê a **UD** (validada contra `LTAP-VLENR` do item); quantidade parcial pede a **etiqueta de HU pré-impressa**; confirma o item (`L_TO_CONFIRM`) e grava `ZSEPEX_T_VOL`. Substitui a LM45 no Express, para que a conferência de expedição tenha os volumes. |
 
 ### 4.4 Demais
 
@@ -120,12 +126,29 @@ Novo parâmetro `I_EXPRESS` → novo campo `ZWM_ICENTROS-EXPRESS` (append struct
 | Bloco final da FM (`automatica = X AND status = R`) | Mesmo tratamento para `EXPRESS`, para não esperar a próxima execução do job. |
 | `ZF_CRIA_OT`, `ZF_CONTINUA_OT` | `CONTINUE` quando `EXPRESS = X` (igual ao `AUTOMATICA`), evitando OT física duplicada se alguém acionar "Criar OT". |
 
-### 5.4 Conferência de expedição (`ZWMRF0002`)
+### 5.4 Conferência de expedição (`ZWMRF0002`) e volumes do Express
 
-Sem alteração na fase 1: a carga Express entra na `ZWMT011` e dispensa a conferência,
-como a carga fechada hoje. A HU física não é criada, pois a remessa de transferência já
-tem PGI quando a separação ocorre (`VEKP` com objeto remessa não é mais possível). O
-controle físico passa a ser a OT de regularização confirmada por UD na LM45.
+A carga Express entra na `ZWMT011` **só para liberar o faturamento no dia 31**. A
+conferência de expedição continua obrigatória e acontece no carregamento, nos dias
+seguintes. Como a remessa já tem PGI, não há HU SAP: o volume do Express é a **UD** do
+palete inteiro ou a **etiqueta de HU pré-impressa** colada em quantidade parcial, ambas
+gravadas em `ZSEPEX_T_VOL` pelo RF de regularização (ver 4.3, `ZSEPEX_RF`).
+
+| Ponto do `ZWMRF0002` | Alteração para carga Express (existe `ZSEPEX_T_CAB` com o `TKNUM`) |
+|---|---|
+| `F_VERIFICA_SAIDA_MERCADORIA` | Não aplicar E05 (saída já efetuada) nem E20 (pendência de OT): a saída é esperada e a OT virtual está confirmada |
+| `F_CREATE_NEW_VERSAO` | Montar `ZTWM_CONF_OV_U/D` a partir de `ZSEPEX_T_VOL` (volume, remessa, item, material, lote, quantidade) em vez de `VEKP/VEPO` |
+| Leitura do volume (`WA_9001-HU`) | Aceitar UD ou etiqueta; validação contra `ZTWM_CONF_OV_U` como hoje |
+| `F_ENCERRAR` | Sem alteração |
+
+`ZWMR0007` (monitor de conferência) não muda: lê as mesmas tabelas.
+
+### 5.5 `ZCL_ARMAZEM_GERAL` (Armazém Geral)
+
+Ver `05_analise_armazem_geral_express.md`: campo `EXPRESS` em `ZAGT_LOG` por append,
+atributo e `SET_EXPRESS` na classe, desvio no ramo WM de `EXECUTAR_PICKING_SAIDA` para
+`ZSEPEX_SEPARA_VIRTUAL` (status 05 direto), parâmetro em `CRIAR_POR_TRANSPORTE`, coluna
+no cockpit. `DETERMINAR_LOTES_REMESSA` passa a descontar `ZSEPEX_SALDO_PENDENTE`.
 
 ## 6. Regras de negócio
 
@@ -136,7 +159,7 @@ controle físico passa a ser a OT de regularização confirmada por UD na LM45.
 | Prazo | Até 7 dias (`DIAS_ALERTA`). Acima disso só sinaliza; a separação continua. |
 | UD não encontrada | Operador confirma com diferença na LM45 (vai para 999). Sincronização marca saldo pendente; Z02 recria OT para o restante em outra UD. Diferença física tratada pelo inventário WM padrão. |
 | Carga cancelada após PGI | Fora do Express (VL09, NF, entrada). Sincronização marca status 9 e as OTs de regularização abertas devem ser estornadas por `LT15`; o quant negativo em `9EX` fica para análise. |
-| Conferência de expedição | Dispensada via `ZWMT011` na fase 1. |
+| Conferência de expedição | Obrigatória, no carregamento, pelo `ZWMRF0002` adaptado contra os volumes de `ZSEPEX_T_VOL`. A `ZWMT011` só libera o faturamento no dia 31. |
 
 ## 7. Plano de testes (QAS)
 
@@ -147,8 +170,10 @@ controle físico passa a ser a OT de regularização confirmada por UD na LM45.
 | T3 | OTs de regularização | Criadas por UD, `LTAP-PQUIT` vazio, UDs com quantidade de saída em aberto; carga fechada/simulação não enxerga essas UDs |
 | T4 | `SAIDA_MERC` e job | 862, 861 com lotes, lotes nas remessas de venda, `ZWM_ICENTROS` status `F`, Express status 3 |
 | T5 | Faturamento VT02N | Sem exigir conferência (`ZWMT011`) |
-| T6 | LM45 total | Negativo zerado, status 5, LX23 zero |
-| T7 | LM45 com diferença | Diferença em 999, saldo pendente, Z02 recria em outra UD do mesmo lote |
+| T6 | RF Express total (UD inteira e parcial com etiqueta) | Negativo zerado, status 5, LX23 zero, volumes em `ZSEPEX_T_VOL` |
+| T7 | RF Express com UD não encontrada | Diferença em 999, saldo pendente, Z02 recria em outra UD do mesmo lote |
+| T7b | Conferência de expedição da carga Express | `ZWMRF0002` lista os volumes, aceita UD e etiqueta, encerra com status 03 |
+| T7c | Carga do depositante (ZRTA) com Express | Status 05 direto, Saída de Merc., NF-e, entrada ZRAR e lotes nas remessas de venda como hoje |
 | T8 | Outra carga tenta usar UD reservada | Simulação e OT física não escolhem a UD |
 | T9 | Validação de saldo pós-PGI Express | Saldo disponível desconta o pendente Express |
 | T10 | Estorno antes da OT virtual | `ZWM_ESTORNO_ICENTROS` funciona; Express status 9 |
@@ -160,8 +185,9 @@ controle físico passa a ser a OT de regularização confirmada por UD na LM45.
 | Fase | Conteúdo | Pré-requisito |
 |---|---|---|
 | 0 | Customizing C1, C2 e provas C3 a C5 em QAS | Consultor WM |
-| 1 | Dicionário, `ZSEPEX_FG`, classes, hook no engine, checkbox e `ZF_SEPARAR_EXPRESS` no monitor, ajuste de saldo, `ZSEPEX02/03/04`, jobs, autorizações | C3 aprovada |
-| 2 | Ajuste de lote com 309 (`AJUSTE_LOTE`), conferência de expedição Express (HU avulsa ligada por `ZSEPEX_T_HU`), aposentadoria da carga fechada | Fiscal e logística |
+| 1 | Dicionário, `ZSEPEX_FG`, classes, hook no engine e na classe do Armazém Geral, checkbox e `ZF_SEPARAR_EXPRESS` no monitor, ajuste de saldo, `ZSEPEX02/03/04`, jobs, autorizações | C3 aprovada |
+| 1b | RF Express (`ZSEPEXRF`) e adaptação do `ZWMRF0002` para volumes Express | Fase 1 em QAS |
+| 2 | Ajuste de lote com 309 (`AJUSTE_LOTE`), aposentadoria da carga fechada | Fiscal e logística |
 
 ## 9. Estrutura do repositório
 

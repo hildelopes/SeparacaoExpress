@@ -22,6 +22,10 @@ Registro vivo. Cada resposta do negócio ou do consultor entra aqui com a data.
 
 | D13 | Armazém Geral | O Express também vale para a carga do depositante (DPFE 1101 → CFMA 1102, retorno ZRTA pela classe `ZCL_ARMAZEM_GERAL`). O controle do pacote ZSEPEX passa a ser por remessa de saída, com a origem como atributo (`05_analise_armazem_geral_express.md`). |
 
+| D14 | Armazém Geral, ponto de desvio | Confirmado (07/10): a ordem ZRTA nasce sem lote, o lote é definido na remessa, a OT sai pelo botão "Criar OT" e a confirmação é no RF. O Express entra no mesmo ponto da classe. A ZRTA tem a mesma pressão de prazo no fechamento. |
+| D15 | Conferência de expedição no Express | **Obrigatória.** A `ZWMT011` serve só para liberar o faturamento no dia 31 sem a conferência; a conferência acontece no carregamento, nos dias seguintes, contra os volumes separados na regularização. Substitui a opção C registrada acima. |
+| D16 | Identidade do volume no Express | Sem HU SAP: a remessa já tem PGI e não aceita embalagem, e HU sem objeto exige depósito gerenciado por HU. O volume passa a ser a **UD** (etiqueta que o palete já tem) para palete inteiro e a **etiqueta de HU pré-impressa** para quantidade parcial, gravadas na tabela `ZSEPEX_T_VOL` pelo RF de regularização. A conferência (`ZWMRF0002`) lê essa tabela para carga Express. |
+
 ## O problema da HU no Express
 
 Hoje a HU nasce na confirmação da OT de picking (RF) e é **embalada na remessa de
@@ -44,7 +48,7 @@ Caminhos possíveis, a decidir com a resposta das pendências abaixo:
 |---|---|---|
 | Q-RF1 | Respondida (D10). | |
 | Q-RF2 | Respondida (D12): `ZWMRF0002`, HU por `VEKP/VEPO` da remessa de transferência. | |
-| Q-RF3 | Respondida (D11): obrigatória, dispensável por `ZWMT011`. Fase 1 usa a dispensa (opção C); opção A fica para a fase 2. | |
+| Q-RF3 | Respondida (D11 e D15): obrigatória; `ZWMT011` libera o faturamento, a conferência é feita no carregamento pela opção B (volume por UD ou etiqueta). | |
 | Q-LOTE | Regra de ajuste quando a UD do lote X não é encontrada na regularização (ver explicação abaixo). | Define a opção de ajuste da Z02. |
 
 ## A pergunta do lote, explicada

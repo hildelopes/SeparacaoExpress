@@ -122,7 +122,7 @@ footer{margin-top:56px;font-size:13px;color:var(--muted);border-top:1px solid va
 <div class="wrap">
   <div class="eyebrow">Proposta para a Logística · DPFE → centros de faturamento</div>
   <h1>Separação Express</h1>
-  <p class="lead">Faturar todas as cargas no último dia do mês sem esperar a separação física no WM, e separar nos dias seguintes com controle de RF.</p>
+  <p class="lead">Faturar todas as cargas no último dia do mês sem esperar a separação física no WM, e separar nos dias seguintes com controle de RF e conferência no carregamento. Vale para as cargas de transferência e para as cargas do depositante.</p>
 
   <h2>O problema no fechamento</h2>
   <p>Hoje a carga só pode ter saída de mercadoria e faturamento depois que a transferência DPFE → centro de faturamento foi separada no WM (OT confirmada no RF). No último dia do mês chegam cerca de 1000 toneladas, e muitas cargas são faturadas no dia mas carregadas nos dias seguintes. A separação física vira o gargalo do faturamento.</p>
@@ -177,13 +177,13 @@ footer{margin-top:56px;font-size:13px;color:var(--muted);border-top:1px solid va
       <li>Acompanha as pendências de separação em um relatório por carga, com idade em dias.</li>
     </ul></div>
     <div class="card role"><h3>Operador RF</h3><ul>
-      <li>Nos dias seguintes, recebe OTs de regularização na LM45, com UD e lote definidos.</li>
-      <li>Lê a UD como hoje. Se a UD não estiver lá, confirma com diferença e o encarregado redireciona para outra UD do mesmo lote.</li>
-      <li>Não cria HU para carga Express na fase 1.</li>
+      <li>Nos dias seguintes, recebe as OTs de regularização no RF Express, com UD e lote definidos.</li>
+      <li>Lê a UD do palete como hoje. Em quantidade parcial, cola e lê a etiqueta pré-impressa. Se a UD não estiver lá, confirma com diferença e o encarregado redireciona para outra UD do mesmo lote.</li>
+      <li>No carregamento, a conferência de expedição lê esses mesmos volumes (UD ou etiqueta), como lê HU hoje.</li>
     </ul></div>
     <div class="card role"><h3>Faturamento</h3><ul>
       <li>Fatura no VT02N no dia 31, como hoje.</li>
-      <li>Carga Express já nasce dispensada da conferência de expedição (tabela ZWMT011), como a carga fechada.</li>
+      <li>Carga Express é liberada para faturar sem a conferência (tabela ZWMT011). A conferência acontece depois, no carregamento.</li>
       <li>NF de transferência, CFOP e lotes iguais ao processo atual.</li>
     </ul></div>
     <div class="card role"><h3>Fiscal e contábil</h3><ul>
@@ -210,6 +210,7 @@ footer{margin-top:56px;font-size:13px;color:var(--muted);border-top:1px solid va
     <li><strong>Express substitui a carga fechada?</strong> A proposta é sim: a carga fechada continua existindo até o Express estar estável e depois sai.</li>
     <li><strong>Troca de lote.</strong> Na fase 1 o operador não pode trocar o lote. Confirmar se isso é aceitável para a operação.</li>
     <li><strong>Prazo de 7 dias.</strong> Só alerta, não bloqueia. Confirmar.</li>
+    <li><strong>Carga do depositante (CFMA).</strong> Mesmo Express: o retorno de armazenagem recebe a separação virtual no lugar da OT física, e a saída, a NF-e e a entrada no CFMA seguem como hoje.</li>
     <li><strong>Prova em QAS.</strong> Tipo de depósito virtual com saldo negativo e OT da remessa confirmada contra ele. A carga fechada já faz algo parecido na posição 999/SEPARAÇÃO, por isso a expectativa é positiva.</li>
   </ul>
 
@@ -237,8 +238,8 @@ const FLOWS = {
     when: [["d31","Dia 31"],["d31","Dia 31"],["d31","Dia 31"],["d31","Dia 31"],["dias","Dias 1 a 7"],["dias","Dias 1 a 7"]],
     cells: [
       [{k:1,b:"Criar Grupo R./Ordem",t:"com Separação Express marcada"},null,{k:1,b:"Saída Merc.",t:"sem esperar o RF"},null,null,{b:"Acompanha pendências",t:"relatório por carga e e-mail diário"}],
-      [{b:"Pedido, remessa de transferência, lotes, transporte, grupo",t:"igual ao fluxo atual; carga dispensada da conferência"},{v:1,b:"Separação virtual",t:"OT confirmada contra a posição virtual; OTs de regularização criadas e UDs reservadas"},{b:"PGI 862 e entrada 861",t:"lotes copiados para as remessas de venda"},null,null,{v:1,b:"Fecha a pendência",t:"quando o saldo negativo da posição virtual zera"}],
-      [null,null,null,null,{p:1,b:"LM45: confirma OT de regularização",t:"lê a UD, no ritmo do carregamento"},null],
+      [{b:"Pedido, remessa de transferência, lotes, transporte, grupo",t:"igual ao fluxo atual; carga liberada para faturar sem conferência"},{v:1,b:"Separação virtual",t:"OT confirmada contra a posição virtual; OTs de regularização criadas e UDs reservadas"},{b:"PGI 862 e entrada 861",t:"lotes copiados para as remessas de venda"},null,null,{v:1,b:"Fecha a pendência",t:"quando o saldo negativo da posição virtual zera"}],
+      [null,null,null,null,{p:1,b:"RF Express: confirma OT de regularização",t:"lê a UD (ou etiqueta em parcial), no ritmo do carregamento"},{p:1,b:"Conferência de expedição",t:"por UD ou etiqueta, no carregamento"}],
       [null,null,null,{b:"VT02N",t:"faturado no dia 31"},null,null]
     ]
   }
@@ -286,8 +287,8 @@ const SIM = {
     {when:"d31",wl:"Dia 31",t:"Separação virtual",d:"Sistema confirma a OT da remessa de transferência contra a posição virtual. A área de saída recebe 100 e a posição virtual fica com −100. Nenhum palete se moveu.",s:{mm:100,fis:100,res:0,virt:-100,s916:100,dest:0},n:"Total do WM: 100 + 100 − 100 = 100, igual ao MM. O negativo é a dívida de separação física."},
     {when:"d31",wl:"Dia 31",t:"OTs de regularização criadas",d:"No mesmo instante o sistema cria as OTs dos bins reais para a posição virtual, com UD e lote. Elas ficam abertas, aguardando o RF, e reservam os paletes.",s:{mm:100,fis:100,res:100,virt:-100,s916:100,dest:0},n:"Outra carga não consegue usar esses paletes nos dias seguintes."},
     {when:"d31",wl:"Dia 31",t:"Saída 862 e entrada 861",d:"Encarregado autoriza a saída sem esperar o RF. MM do DPFE baixa, centro de faturamento recebe com os lotes, remessas de venda recebem os lotes.",s:{mm:0,fis:100,res:100,virt:-100,s916:0,dest:100},n:"Os paletes continuam fisicamente no DPFE, reservados. Contabilmente já estão no centro de faturamento."},
-    {when:"d31",wl:"Dia 31",t:"Faturamento",d:"VT02N no dia 31. Carga dispensada da conferência de expedição por HU.",s:{mm:0,fis:100,res:100,virt:-100,s916:0,dest:100},n:"Meta do fechamento cumprida. A separação física fica para os dias seguintes."},
-    {when:"dias",wl:"Dias 1 a 7",t:"LM45: operador confirma a OT de regularização",d:"Operador lê a UD e confirma. O palete sai do bin e zera o negativo da posição virtual.",s:{mm:0,fis:0,res:0,virt:0,s916:0,dest:100},n:"Pendência fechada. WM e MM batem, LX23 sem diferença. Se a UD não estiver lá, confirma com diferença e o encarregado redireciona para outra UD do mesmo lote."}
+    {when:"d31",wl:"Dia 31",t:"Faturamento",d:"VT02N no dia 31, liberado sem a conferência de expedição (que fica para o carregamento).",s:{mm:0,fis:100,res:100,virt:-100,s916:0,dest:100},n:"Meta do fechamento cumprida. A separação física e a conferência ficam para os dias seguintes."},
+    {when:"dias",wl:"Dias 1 a 7",t:"RF Express: operador confirma a OT de regularização",d:"Operador lê a UD do palete (ou a etiqueta, em quantidade parcial) e confirma. O palete sai do bin e zera o negativo da posição virtual. Cada leitura vira um volume da carga.",s:{mm:0,fis:0,res:0,virt:0,s916:0,dest:100},n:"Pendência fechada. WM e MM batem, LX23 sem diferença. No carregamento, a conferência de expedição lê os mesmos volumes."}
   ]
 };
 const STORES=[["mm","Estoque MM","DPFE"],["fis","Paletes nos bins","WM DPFE, por UD"],["virt","Posição virtual","WM DPFE, 9EX/EXPRESS"],["s916","Área de saída","WM DPFE, 916"],["dest","Centro de faturamento","MM destino"]];

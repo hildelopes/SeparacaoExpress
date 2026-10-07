@@ -113,6 +113,6 @@ acompanha essa decisão.
 
 | ID | Pergunta |
 |---|---|
-| Q-AG1 | Rota R em produção: `OT_AUTO` e `OT_CONF_AUTO` estão vazios (OT pelo botão "Criar OT", confirmação no RF)? Confirma o ponto de desvio. |
-| Q-AG2 | A conferência de expedição é usada nas cargas do depositante hoje, ou elas já são dispensadas via `ZWMT011`? |
-| Q-AG3 | A ZRTA também é faturada no fechamento com a mesma pressão de prazo das cargas intercentros? |
+| Q-AG1 | Respondida: OT pelo botão, confirmação no RF, lote definido na remessa. Ponto de desvio confirmado (D14). |
+| Q-AG2 | Respondida: conferência quando necessária hoje, e **necessária** para a carga Express (D15). |
+| Q-AG3 | Respondida: sim, mesma pressão de prazo. |
