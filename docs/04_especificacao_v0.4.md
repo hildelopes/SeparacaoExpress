@@ -62,12 +62,14 @@ Total WM = total MM em todas as linhas. LX23 fecha em zero.
 
 | Objeto | Tipo | Campos principais |
 |---|---|---|
-| `ZSEPEX_T_PAR` | Tabela | `LGNUM` (chave), `LGTYP_VIRT`, `LGBER_VIRT`, `LGPLA_VIRT`, `BWLVS_REG`, `OT_IMEDIATA`, `DIAS_ALERTA`, `EMAIL_DEST` (string), `AJUSTE_LOTE` (permite 309) |
+| `ZSEPEX_T_PAR` | Tabela | `LGNUM` (chave), `LGTYP_VIRT`, `LGBER_VIRT`, `LGPLA_VIRT`, `BWLVS_REG`, `OT_IMEDIATA`, `DIAS_ALERTA`, `EMAIL_DEST`, `ATIVO` |
+| `ZSEPEX_T_PAR_LT` | Tabela | `LGNUM`, `LGTYP` (chave), `PRIORIDADE`, `ATIVO`: tipos de depósito de origem da regularização |
 | `ZSEPEX_T_CAB` | Tabela | `LGNUM`, `VBELN` (chave; remessa de saída do DPFE: transferência ou ZRTA), `ORIGEM` (`I` intercentros, `A` armazém geral), `ORIGEM_ID` (número `ZWM_ICENTROS` ou GUID `ZAGT_LOG`), `TKNUM`, `REFNR`, `STATUS`, `DT_VIRT`, `DT_PGI`, `DT_CONCL`, `ERNAM/ERDAT/ERZET`, `AENAM/AEDAT/AEZET` |
 | `ZSEPEX_T_ITM` | Tabela | `LGNUM`, `VBELN`, `POSNR` (chave; item de lote da remessa), `MATNR`, `CHARG`, `MENGE`, `MEINS`, `TANUM_VIRT`, `TAPOS_VIRT`, `QTD_REGUL`, `STATUS` |
 | `ZSEPEX_T_OT` | Tabela | `LGNUM`, `TANUM`, `TAPOS` (chave), `VBELN`, `POSNR`, `MATNR`, `CHARG`, `VLENR`, `VSOLM`, `NISTM`, `NDIFA`, `PQUIT`, `AEDAT` |
 | `ZSEPEX_T_VOL` | Tabela | `LGNUM`, `VOLUME` (chave; UD ou etiqueta), `TKNUM`, `VBELN`, `POSNR`, `MATNR`, `CHARG`, `MENGE`, `MEINS`, `TANUM`, `TAPOS`, `TIPO` (`U` UD inteira, `E` etiqueta parcial), `ERNAM/ERDAT/ERZET` |
 | `ZSEPEX_D_STATUS` | Domínio | `0` Registrado, `1` Separação virtual, `2` OT regularização criada, `3` PGI efetuado, `4` Em regularização, `5` Concluído, `9` Cancelado |
+| `ZSEPEX_D_ORIGEM`, `ZSEPEX_D_TIPO_VOL`, `ZSEPEX_D_DIAS` | Domínios | Origem I/A, tipo de volume U/E, dias |
 | `ZSEPEX_S_PEND`, `ZSEPEX_S_REG`, `ZSEPEX_S_LOG` | Estruturas | Saídas ALV |
 
 ### 4.2 Funções e classes
@@ -80,7 +82,7 @@ Total WM = total MM em todas as linhas. LX23 fecha em zero.
 | `ZCL_SEPEX_CONTROLE` | Persistência, transições de status, bloqueio `EZSEPEX_CAB` |
 | `ZCL_SEPEX_UD` | Seleção de UDs (lógica extraída da simulação do monitor, parametrizada por lote) |
 | `ZCL_SEPEX_WM` | Wrappers de `L_TO_CREATE_DN`, `L_TO_CONFIRM`, `L_TO_CREATE_MULTIPLE`, leitura `LTAP/LQUA` |
-| `ZCL_SEPEX_MM` | Fase 2: transferências 309 do ajuste de lote |
+| `ZCL_SEPEX_SINC` | Sincronização de itens, OTs e remessa; fechamento do processo |
 | `ZCL_SEPEX_LOG` | Application log objeto `ZSEPEX` |
 | `ZCL_SEPEX_AUTH` | Objeto `ZSEPEX_AUT` (`LGNUM`, `ACTVT`: 01 liberar, 02 regularizar, 03 exibir, 85 ajustar) |
 
@@ -91,7 +93,7 @@ Total WM = total MM em todas as linhas. LX23 fecha em zero.
 | `ZSEPEX_R_REGULARIZAR` | `ZSEPEX02` | ALV dos itens pendentes (por carga, processo, remessa, material, lote): criar OT de regularização, recriar para saldo após diferença, trocar UD, fase 2 ajuste de lote. |
 | `ZSEPEX_R_PENDENCIAS` | `ZSEPEX03` | Pendências com idade e destaque acima de `DIAS_ALERTA`, totais por carga e por data de PGI, versão de fechamento com `LQUA` negativa em `9EX`, envio por e-mail (job diário). |
 | `ZSEPEX_R_SINCRONIZAR` | `ZSEPEX04` | Job (30 min): lê `LTAP` das OTs de regularização (`PQUIT`, `NISTM`, `NDIFA`), atualiza `QTD_REGUL`, status 4 e 5; lê `VBUK-WBSTK` da remessa de transferência para `DT_PGI` e status 3; detecta estorno de PGI → status 9. |
-| `ZSEPEX_R_PARAM` | `ZSEPEX00` | Manutenção de `ZSEPEX_T_PAR` (ou SM30). |
+| (SM30) | — | Manutenção de `ZSEPEX_T_PAR` e `ZSEPEX_T_PAR_LT` gerada pela SE54. |
 | `ZSEPEX_RF` (pool de módulos, padrão `ZWMRF0002`) | `ZSEPEXRF` | RF de regularização: lista as OTs de regularização da carga ou da OT lida; operador lê a **UD** (validada contra `LTAP-VLENR` do item); quantidade parcial pede a **etiqueta de HU pré-impressa**; confirma o item (`L_TO_CONFIRM`) e grava `ZSEPEX_T_VOL`. Substitui a LM45 no Express, para que a conferência de expedição tenha os volumes. |
 
 ### 4.4 Demais
@@ -189,7 +191,13 @@ no cockpit. `DETERMINAR_LOTES_REMESSA` passa a descontar `ZSEPEX_SALDO_PENDENTE`
 | 1b | RF Express (`ZSEPEXRF`) e adaptação do `ZWMRF0002` para volumes Express | Fase 1 em QAS |
 | 2 | Ajuste de lote com 309 (`AJUSTE_LOTE`), aposentadoria da carga fechada | Fiscal e logística |
 
-## 9. Estrutura do repositório
+## 9. Estado da implementação (07/10/2026)
+
+Fase 1 entregue no repositório (`src/`, 60 objetos, abaplint sem erros em v740sp08) e
+trechos das alterações nos objetos compartilhados em `alteracoes/`. Pendentes: fase 1b
+(RF Express e `ZWMRF0002`), ajuste de lote (fase 2, regra 1 adotada: sem troca de lote).
+
+## 10. Estrutura do repositório
 
 ```
 src/                       abapGit, pacote ZSEPEX

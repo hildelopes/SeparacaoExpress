@@ -1,0 +1,200 @@
+<?xml version="1.0" encoding="utf-8"?>
+<abapGit version="v1.0.0" serializer="LCL_OBJECT_MSAG" serializer_version="v1.0.0">
+ <asx:abap xmlns:asx="http://www.sap.com/abapxml" version="1.0">
+  <asx:values>
+   <T100A>
+    <ARBGB>ZSEPEX</ARBGB>
+    <MASTERLANG>P</MASTERLANG>
+    <STEXT>Mensagens Separação Express</STEXT>
+   </T100A>
+   <T100>
+    <T100>
+     <SPRSL>P</SPRSL>
+     <ARBGB>ZSEPEX</ARBGB>
+     <MSGNR>000</MSGNR>
+     <TEXT>&amp;1&amp;2&amp;3&amp;4</TEXT>
+    </T100>
+    <T100>
+     <SPRSL>P</SPRSL>
+     <ARBGB>ZSEPEX</ARBGB>
+     <MSGNR>001</MSGNR>
+     <TEXT>Parâmetros Separação Express não cadastrados para o depósito &amp;1</TEXT>
+    </T100>
+    <T100>
+     <SPRSL>P</SPRSL>
+     <ARBGB>ZSEPEX</ARBGB>
+     <MSGNR>002</MSGNR>
+     <TEXT>Remessa &amp;1 não encontrada</TEXT>
+    </T100>
+    <T100>
+     <SPRSL>P</SPRSL>
+     <ARBGB>ZSEPEX</ARBGB>
+     <MSGNR>003</MSGNR>
+     <TEXT>Remessa &amp;1 já tem saída de mercadoria; separação virtual não permitida</TEXT>
+    </T100>
+    <T100>
+     <SPRSL>P</SPRSL>
+     <ARBGB>ZSEPEX</ARBGB>
+     <MSGNR>004</MSGNR>
+     <TEXT>Remessa &amp;1 sem itens com lote; determinar lotes antes da separação virtual</TEXT>
+    </T100>
+    <T100>
+     <SPRSL>P</SPRSL>
+     <ARBGB>ZSEPEX</ARBGB>
+     <MSGNR>005</MSGNR>
+     <TEXT>Remessa &amp;1 já está registrada na Separação Express (status &amp;2)</TEXT>
+    </T100>
+    <T100>
+     <SPRSL>P</SPRSL>
+     <ARBGB>ZSEPEX</ARBGB>
+     <MSGNR>006</MSGNR>
+     <TEXT>OT virtual &amp;1 criada para a remessa &amp;2 (origem &amp;3/&amp;4)</TEXT>
+    </T100>
+    <T100>
+     <SPRSL>P</SPRSL>
+     <ARBGB>ZSEPEX</ARBGB>
+     <MSGNR>007</MSGNR>
+     <TEXT>OT virtual &amp;1 confirmada</TEXT>
+    </T100>
+    <T100>
+     <SPRSL>P</SPRSL>
+     <ARBGB>ZSEPEX</ARBGB>
+     <MSGNR>008</MSGNR>
+     <TEXT>Erro ao criar OT virtual da remessa &amp;1: &amp;2 &amp;3 &amp;4</TEXT>
+    </T100>
+    <T100>
+     <SPRSL>P</SPRSL>
+     <ARBGB>ZSEPEX</ARBGB>
+     <MSGNR>009</MSGNR>
+     <TEXT>Erro ao confirmar OT virtual &amp;1: &amp;2 &amp;3 &amp;4</TEXT>
+    </T100>
+    <T100>
+     <SPRSL>P</SPRSL>
+     <ARBGB>ZSEPEX</ARBGB>
+     <MSGNR>010</MSGNR>
+     <TEXT>Processo Express da remessa &amp;1 gravado com status &amp;2</TEXT>
+    </T100>
+    <T100>
+     <SPRSL>P</SPRSL>
+     <ARBGB>ZSEPEX</ARBGB>
+     <MSGNR>011</MSGNR>
+     <TEXT>Saldo insuficiente nos bins para material &amp;1 lote &amp;2: faltam &amp;3 &amp;4</TEXT>
+    </T100>
+    <T100>
+     <SPRSL>P</SPRSL>
+     <ARBGB>ZSEPEX</ARBGB>
+     <MSGNR>012</MSGNR>
+     <TEXT>OT de regularização &amp;1 criada para remessa &amp;2 (&amp;3 itens)</TEXT>
+    </T100>
+    <T100>
+     <SPRSL>P</SPRSL>
+     <ARBGB>ZSEPEX</ARBGB>
+     <MSGNR>013</MSGNR>
+     <TEXT>Erro ao criar OT de regularização: &amp;1 &amp;2 &amp;3 &amp;4</TEXT>
+    </T100>
+    <T100>
+     <SPRSL>P</SPRSL>
+     <ARBGB>ZSEPEX</ARBGB>
+     <MSGNR>014</MSGNR>
+     <TEXT>Nenhum item pendente de regularização para a remessa &amp;1</TEXT>
+    </T100>
+    <T100>
+     <SPRSL>P</SPRSL>
+     <ARBGB>ZSEPEX</ARBGB>
+     <MSGNR>015</MSGNR>
+     <TEXT>Processo &amp;1 bloqueado por outro usuário (&amp;2)</TEXT>
+    </T100>
+    <T100>
+     <SPRSL>P</SPRSL>
+     <ARBGB>ZSEPEX</ARBGB>
+     <MSGNR>016</MSGNR>
+     <TEXT>Sem autorização para atividade &amp;1 no depósito &amp;2 (ZSEPEX_AUT)</TEXT>
+    </T100>
+    <T100>
+     <SPRSL>P</SPRSL>
+     <ARBGB>ZSEPEX</ARBGB>
+     <MSGNR>017</MSGNR>
+     <TEXT>Remessa &amp;1: &amp;2 item(ns) regularizados, &amp;3 pendente(s)</TEXT>
+    </T100>
+    <T100>
+     <SPRSL>P</SPRSL>
+     <ARBGB>ZSEPEX</ARBGB>
+     <MSGNR>018</MSGNR>
+     <TEXT>Processo da remessa &amp;1 concluído</TEXT>
+    </T100>
+    <T100>
+     <SPRSL>P</SPRSL>
+     <ARBGB>ZSEPEX</ARBGB>
+     <MSGNR>019</MSGNR>
+     <TEXT>Saída de mercadoria estornada para remessa &amp;1; processo marcado como cancelado</TEXT>
+    </T100>
+    <T100>
+     <SPRSL>P</SPRSL>
+     <ARBGB>ZSEPEX</ARBGB>
+     <MSGNR>020</MSGNR>
+     <TEXT>OT de regularização &amp;1 item &amp;2 confirmada com diferença de &amp;3 &amp;4</TEXT>
+    </T100>
+    <T100>
+     <SPRSL>P</SPRSL>
+     <ARBGB>ZSEPEX</ARBGB>
+     <MSGNR>021</MSGNR>
+     <TEXT>Nenhum processo selecionado</TEXT>
+    </T100>
+    <T100>
+     <SPRSL>P</SPRSL>
+     <ARBGB>ZSEPEX</ARBGB>
+     <MSGNR>022</MSGNR>
+     <TEXT>Regularização: &amp;1 OT(s) criada(s), &amp;2 erro(s)</TEXT>
+    </T100>
+    <T100>
+     <SPRSL>P</SPRSL>
+     <ARBGB>ZSEPEX</ARBGB>
+     <MSGNR>023</MSGNR>
+     <TEXT>E-mail de pendências enviado para &amp;1 destinatário(s)</TEXT>
+    </T100>
+    <T100>
+     <SPRSL>P</SPRSL>
+     <ARBGB>ZSEPEX</ARBGB>
+     <MSGNR>024</MSGNR>
+     <TEXT>Nenhum destinatário de e-mail configurado para o depósito &amp;1</TEXT>
+    </T100>
+    <T100>
+     <SPRSL>P</SPRSL>
+     <ARBGB>ZSEPEX</ARBGB>
+     <MSGNR>025</MSGNR>
+     <TEXT>Remessa &amp;1 com saída efetuada em &amp;2</TEXT>
+    </T100>
+    <T100>
+     <SPRSL>P</SPRSL>
+     <ARBGB>ZSEPEX</ARBGB>
+     <MSGNR>026</MSGNR>
+     <TEXT>Tipos de depósito de origem não cadastrados para o depósito &amp;1 (ZSEPEX_T_PAR_LT)</TEXT>
+    </T100>
+    <T100>
+     <SPRSL>P</SPRSL>
+     <ARBGB>ZSEPEX</ARBGB>
+     <MSGNR>027</MSGNR>
+     <TEXT>Material &amp;1 lote &amp;2: &amp;3 &amp;4 sem UD disponível no momento</TEXT>
+    </T100>
+    <T100>
+     <SPRSL>P</SPRSL>
+     <ARBGB>ZSEPEX</ARBGB>
+     <MSGNR>028</MSGNR>
+     <TEXT>OT &amp;1 estornada/cancelada; item &amp;2 da remessa &amp;3 volta a pendente</TEXT>
+    </T100>
+    <T100>
+     <SPRSL>P</SPRSL>
+     <ARBGB>ZSEPEX</ARBGB>
+     <MSGNR>029</MSGNR>
+     <TEXT>Nada a sincronizar</TEXT>
+    </T100>
+    <T100>
+     <SPRSL>P</SPRSL>
+     <ARBGB>ZSEPEX</ARBGB>
+     <MSGNR>030</MSGNR>
+     <TEXT>Sincronização: &amp;1 processo(s) atualizados, &amp;2 concluído(s)</TEXT>
+    </T100>
+   </T100>
+  </asx:values>
+ </asx:abap>
+</abapGit>

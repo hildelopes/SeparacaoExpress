@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="utf-8"?>
+<abapGit version="v1.0.0" serializer="LCL_OBJECT_PROG" serializer_version="v1.0.0">
+ <asx:abap xmlns:asx="http://www.sap.com/abapxml" version="1.0">
+  <asx:values>
+   <PROGDIR>
+    <NAME>ZSEPEX_R_PENDENCIAS</NAME>
+    <SUBC>1</SUBC>
+    <FIXPT>X</FIXPT>
+    <UCCHECK>X</UCCHECK>
+   </PROGDIR>
+   <TPOOL>
+   <item>
+    <ID>R</ID>
+    <ENTRY>Separação Express - Pendências (ZSEPEX03)</ENTRY>
+    <LENGTH>41</LENGTH>
+   </item>
+   <item>
+    <ID>I</ID>
+    <KEY>001</KEY>
+    <ENTRY>Seleção</ENTRY>
+    <LENGTH>10</LENGTH>
+   </item>
+   <item>
+    <ID>I</ID>
+    <KEY>002</KEY>
+    <ENTRY>Opções</ENTRY>
+    <LENGTH>10</LENGTH>
+   </item>
+   <item>
+    <ID>S</ID>
+    <KEY>P_LGNUM</KEY>
+    <ENTRY>        Nº depósito WM</ENTRY>
+    <LENGTH>22</LENGTH>
+   </item>
+   <item>
+    <ID>S</ID>
+    <KEY>S_TKNUM</KEY>
+    <ENTRY>        Carga (transporte)</ENTRY>
+    <LENGTH>26</LENGTH>
+   </item>
+   <item>
+    <ID>S</ID>
+    <KEY>S_VBELN</KEY>
+    <ENTRY>        Remessa de saída</ENTRY>
+    <LENGTH>24</LENGTH>
+   </item>
+   <item>
+    <ID>S</ID>
+    <KEY>S_ORIGEM</KEY>
+    <ENTRY>        Origem</ENTRY>
+    <LENGTH>14</LENGTH>
+   </item>
+   <item>
+    <ID>S</ID>
+    <KEY>S_STATUS</KEY>
+    <ENTRY>        Status Express</ENTRY>
+    <LENGTH>22</LENGTH>
+   </item>
+   <item>
+    <ID>S</ID>
+    <KEY>S_DTVIRT</KEY>
+    <ENTRY>        Data da separação virtual</ENTRY>
+    <LENGTH>33</LENGTH>
+   </item>
+   <item>
+    <ID>S</ID>
+    <KEY>P_ABERTO</KEY>
+    <ENTRY>        Só pendentes</ENTRY>
+    <LENGTH>20</LENGTH>
+   </item>
+   <item>
+    <ID>S</ID>
+    <KEY>P_FECH</KEY>
+    <ENTRY>        Versão de fechamento (saldo 9EX)</ENTRY>
+    <LENGTH>40</LENGTH>
+   </item>
+   <item>
+    <ID>S</ID>
+    <KEY>P_EMAIL</KEY>
+    <ENTRY>        Enviar por e-mail (job)</ENTRY>
+    <LENGTH>31</LENGTH>
+   </item>
+   </TPOOL>
+  </asx:values>
+ </asx:abap>
+</abapGit>

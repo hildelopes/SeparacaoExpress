@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="utf-8"?>
+<abapGit version="v1.0.0" serializer="LCL_OBJECT_PROG" serializer_version="v1.0.0">
+ <asx:abap xmlns:asx="http://www.sap.com/abapxml" version="1.0">
+  <asx:values>
+   <PROGDIR>
+    <NAME>ZSEPEX_R_REGULARIZAR</NAME>
+    <SUBC>1</SUBC>
+    <FIXPT>X</FIXPT>
+    <UCCHECK>X</UCCHECK>
+   </PROGDIR>
+   <TPOOL>
+   <item>
+    <ID>R</ID>
+    <ENTRY>Separação Express - Regularização física (ZSEPEX02)</ENTRY>
+    <LENGTH>51</LENGTH>
+   </item>
+   <item>
+    <ID>I</ID>
+    <KEY>001</KEY>
+    <ENTRY>Seleção</ENTRY>
+    <LENGTH>10</LENGTH>
+   </item>
+   <item>
+    <ID>I</ID>
+    <KEY>002</KEY>
+    <ENTRY>Ação</ENTRY>
+    <LENGTH>10</LENGTH>
+   </item>
+   <item>
+    <ID>I</ID>
+    <KEY>003</KEY>
+    <ENTRY>Opções</ENTRY>
+    <LENGTH>10</LENGTH>
+   </item>
+   <item>
+    <ID>S</ID>
+    <KEY>P_LGNUM</KEY>
+    <ENTRY>        Nº depósito WM</ENTRY>
+    <LENGTH>22</LENGTH>
+   </item>
+   <item>
+    <ID>S</ID>
+    <KEY>S_TKNUM</KEY>
+    <ENTRY>        Carga (transporte)</ENTRY>
+    <LENGTH>26</LENGTH>
+   </item>
+   <item>
+    <ID>S</ID>
+    <KEY>S_VBELN</KEY>
+    <ENTRY>        Remessa de saída</ENTRY>
+    <LENGTH>24</LENGTH>
+   </item>
+   <item>
+    <ID>S</ID>
+    <KEY>S_STATUS</KEY>
+    <ENTRY>        Status Express</ENTRY>
+    <LENGTH>22</LENGTH>
+   </item>
+   <item>
+    <ID>S</ID>
+    <KEY>S_MATNR</KEY>
+    <ENTRY>        Material</ENTRY>
+    <LENGTH>16</LENGTH>
+   </item>
+   <item>
+    <ID>S</ID>
+    <KEY>P_EXIBIR</KEY>
+    <ENTRY>        Exibir itens pendentes</ENTRY>
+    <LENGTH>30</LENGTH>
+   </item>
+   <item>
+    <ID>S</ID>
+    <KEY>P_CRIAR</KEY>
+    <ENTRY>        Criar OTs de regularização</ENTRY>
+    <LENGTH>34</LENGTH>
+   </item>
+   <item>
+    <ID>S</ID>
+    <KEY>P_SINC</KEY>
+    <ENTRY>        Sincronizar com WM/remessa</ENTRY>
+    <LENGTH>34</LENGTH>
+   </item>
+   <item>
+    <ID>S</ID>
+    <KEY>P_TESTE</KEY>
+    <ENTRY>        Modo teste (não grava)</ENTRY>
+    <LENGTH>30</LENGTH>
+   </item>
+   </TPOOL>
+  </asx:values>
+ </asx:abap>
+</abapGit>

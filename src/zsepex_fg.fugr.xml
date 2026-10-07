@@ -1,0 +1,265 @@
+<?xml version="1.0" encoding="utf-8"?>
+<abapGit version="v1.0.0" serializer="LCL_OBJECT_FUGR" serializer_version="v1.0.0">
+ <asx:abap xmlns:asx="http://www.sap.com/abapxml" version="1.0">
+  <asx:values>
+   <AREAT>Separação Express - integração (engine e Armazém Geral)</AREAT>
+   <INCLUDES>
+    <SOBJ_NAME>LZSEPEX_FGTOP</SOBJ_NAME>
+    <SOBJ_NAME>SAPLZSEPEX_FG</SOBJ_NAME>
+   </INCLUDES>
+   <FUNCTIONS>
+    <item>
+     <FUNCNAME>ZSEPEX_SEPARA_VIRTUAL</FUNCNAME>
+     <GLOBAL_FLAG>X</GLOBAL_FLAG>
+     <SHORT_TEXT>Separação Express - OT virtual confirmada da remessa</SHORT_TEXT>
+     <IMPORT>
+      <RSIMP>
+       <PARAMETER>I_LGNUM</PARAMETER>
+       <REFERENCE>X</REFERENCE>
+       <TYP>LGNUM</TYP>
+      </RSIMP>
+      <RSIMP>
+       <PARAMETER>I_VBELN</PARAMETER>
+       <REFERENCE>X</REFERENCE>
+       <TYP>VBELN_VL</TYP>
+      </RSIMP>
+      <RSIMP>
+       <PARAMETER>I_REFNR</PARAMETER>
+       <OPTIONAL>X</OPTIONAL>
+       <REFERENCE>X</REFERENCE>
+       <TYP>LVS_REFNR</TYP>
+      </RSIMP>
+      <RSIMP>
+       <PARAMETER>I_ORIGEM</PARAMETER>
+       <REFERENCE>X</REFERENCE>
+       <TYP>ZSEPEX_ORIGEM</TYP>
+      </RSIMP>
+      <RSIMP>
+       <PARAMETER>I_ORIGEM_ID</PARAMETER>
+       <OPTIONAL>X</OPTIONAL>
+       <REFERENCE>X</REFERENCE>
+       <TYP>ZSEPEX_ORIGEM_ID</TYP>
+      </RSIMP>
+      <RSIMP>
+       <PARAMETER>I_TKNUM</PARAMETER>
+       <OPTIONAL>X</OPTIONAL>
+       <REFERENCE>X</REFERENCE>
+       <TYP>TKNUM</TYP>
+      </RSIMP>
+      <RSIMP>
+       <PARAMETER>I_CRIAR_OT_REGUL</PARAMETER>
+       <DEFAULT>' '</DEFAULT>
+       <OPTIONAL>X</OPTIONAL>
+       <REFERENCE>X</REFERENCE>
+       <TYP>XFELD</TYP>
+      </RSIMP>
+     </IMPORT>
+     <EXPORT>
+      <RSEXP>
+       <PARAMETER>E_TANUM</PARAMETER>
+       <REFERENCE>X</REFERENCE>
+       <TYP>TANUM</TYP>
+      </RSEXP>
+      <RSEXP>
+       <PARAMETER>E_TANUM_REGUL</PARAMETER>
+       <REFERENCE>X</REFERENCE>
+       <TYP>TANUM</TYP>
+      </RSEXP>
+     </EXPORT>
+     <TABLES>
+      <RSTBL>
+       <PARAMETER>T_RETURN</PARAMETER>
+       <DBSTRUCT>BAPIRET2</DBSTRUCT>
+       <OPTIONAL>X</OPTIONAL>
+      </RSTBL>
+     </TABLES>
+     <EXCEPTION>
+      <RSEXC>
+       <EXCEPTION>E_ERRO</EXCEPTION>
+      </RSEXC>
+     </EXCEPTION>
+     <DOCUMENTATION>
+      <RSFDO>
+       <PARAMETER>I_LGNUM</PARAMETER>
+       <KIND>P</KIND>
+       <STEXT>Nº do depósito WM (DFC)</STEXT>
+      </RSFDO>
+      <RSFDO>
+       <PARAMETER>I_VBELN</PARAMETER>
+       <KIND>P</KIND>
+       <STEXT>Remessa de saída do DPFE (transferência ou ZRTA)</STEXT>
+      </RSFDO>
+      <RSFDO>
+       <PARAMETER>I_REFNR</PARAMETER>
+       <KIND>P</KIND>
+       <STEXT>Grupo de remessas (só intercentros)</STEXT>
+      </RSFDO>
+      <RSFDO>
+       <PARAMETER>I_ORIGEM</PARAMETER>
+       <KIND>P</KIND>
+       <STEXT>I intercentros / A armazém geral</STEXT>
+      </RSFDO>
+      <RSFDO>
+       <PARAMETER>I_ORIGEM_ID</PARAMETER>
+       <KIND>P</KIND>
+       <STEXT>Nº ZWM_ICENTROS ou GUID ZAGT_LOG</STEXT>
+      </RSFDO>
+      <RSFDO>
+       <PARAMETER>I_TKNUM</PARAMETER>
+       <KIND>P</KIND>
+       <STEXT>Transporte da carga (remessas de venda)</STEXT>
+      </RSFDO>
+      <RSFDO>
+       <PARAMETER>I_CRIAR_OT_REGUL</PARAMETER>
+       <KIND>P</KIND>
+       <STEXT>X = cria OT de regularização além do parâmetro OT_IMEDIATA</STEXT>
+      </RSFDO>
+      <RSFDO>
+       <PARAMETER>E_TANUM</PARAMETER>
+       <KIND>P</KIND>
+       <STEXT>OT virtual confirmada</STEXT>
+      </RSFDO>
+      <RSFDO>
+       <PARAMETER>E_TANUM_REGUL</PARAMETER>
+       <KIND>P</KIND>
+       <STEXT>OT de regularização criada (se houver)</STEXT>
+      </RSFDO>
+      <RSFDO>
+       <PARAMETER>T_RETURN</PARAMETER>
+       <KIND>P</KIND>
+       <STEXT>Mensagens (padrão do engine)</STEXT>
+      </RSFDO>
+      <RSFDO>
+       <PARAMETER>E_ERRO</PARAMETER>
+       <KIND>X</KIND>
+       <STEXT>Erro: nada gravado, mensagens em T_RETURN</STEXT>
+      </RSFDO>
+     </DOCUMENTATION>
+    </item>
+    <item>
+     <FUNCNAME>ZSEPEX_CRIA_OT_REGUL</FUNCNAME>
+     <GLOBAL_FLAG>X</GLOBAL_FLAG>
+     <SHORT_TEXT>Separação Express - OT de regularização (bins -> posição virtual)</SHORT_TEXT>
+     <IMPORT>
+      <RSIMP>
+       <PARAMETER>I_LGNUM</PARAMETER>
+       <REFERENCE>X</REFERENCE>
+       <TYP>LGNUM</TYP>
+      </RSIMP>
+      <RSIMP>
+       <PARAMETER>I_VBELN</PARAMETER>
+       <REFERENCE>X</REFERENCE>
+       <TYP>VBELN_VL</TYP>
+      </RSIMP>
+      <RSIMP>
+       <PARAMETER>I_TESTE</PARAMETER>
+       <DEFAULT>' '</DEFAULT>
+       <OPTIONAL>X</OPTIONAL>
+       <REFERENCE>X</REFERENCE>
+       <TYP>XFELD</TYP>
+      </RSIMP>
+     </IMPORT>
+     <EXPORT>
+      <RSEXP>
+       <PARAMETER>E_TANUM</PARAMETER>
+       <REFERENCE>X</REFERENCE>
+       <TYP>TANUM</TYP>
+      </RSEXP>
+      <RSEXP>
+       <PARAMETER>E_ITENS_OK</PARAMETER>
+       <REFERENCE>X</REFERENCE>
+       <TYP>INT4</TYP>
+      </RSEXP>
+      <RSEXP>
+       <PARAMETER>E_ITENS_PEND</PARAMETER>
+       <REFERENCE>X</REFERENCE>
+       <TYP>INT4</TYP>
+      </RSEXP>
+     </EXPORT>
+     <TABLES>
+      <RSTBL>
+       <PARAMETER>T_RETURN</PARAMETER>
+       <DBSTRUCT>BAPIRET2</DBSTRUCT>
+       <OPTIONAL>X</OPTIONAL>
+      </RSTBL>
+      <RSTBL>
+       <PARAMETER>T_UD</PARAMETER>
+       <DBSTRUCT>ZSEPEX_S_UD</DBSTRUCT>
+       <OPTIONAL>X</OPTIONAL>
+      </RSTBL>
+     </TABLES>
+     <EXCEPTION>
+      <RSEXC>
+       <EXCEPTION>E_ERRO</EXCEPTION>
+      </RSEXC>
+     </EXCEPTION>
+     <DOCUMENTATION>
+      <RSFDO>
+       <PARAMETER>I_TESTE</PARAMETER>
+       <KIND>P</KIND>
+       <STEXT>X = só seleciona UDs, não cria OT</STEXT>
+      </RSFDO>
+      <RSFDO>
+       <PARAMETER>T_UD</PARAMETER>
+       <KIND>P</KIND>
+       <STEXT>UDs selecionadas (saída)</STEXT>
+      </RSFDO>
+      <RSFDO>
+       <PARAMETER>E_ITENS_OK</PARAMETER>
+       <KIND>P</KIND>
+       <STEXT>Itens cobertos</STEXT>
+      </RSFDO>
+      <RSFDO>
+       <PARAMETER>E_ITENS_PEND</PARAMETER>
+       <KIND>P</KIND>
+       <STEXT>Itens com saldo não coberto</STEXT>
+      </RSFDO>
+     </DOCUMENTATION>
+    </item>
+    <item>
+     <FUNCNAME>ZSEPEX_SALDO_PENDENTE</FUNCNAME>
+     <GLOBAL_FLAG>X</GLOBAL_FLAG>
+     <SHORT_TEXT>Separação Express - saldo pendente de regularização por material/lote</SHORT_TEXT>
+     <IMPORT>
+      <RSIMP>
+       <PARAMETER>I_LGNUM</PARAMETER>
+       <REFERENCE>X</REFERENCE>
+       <TYP>LGNUM</TYP>
+      </RSIMP>
+      <RSIMP>
+       <PARAMETER>I_WERKS</PARAMETER>
+       <OPTIONAL>X</OPTIONAL>
+       <REFERENCE>X</REFERENCE>
+       <TYP>WERKS_D</TYP>
+      </RSIMP>
+      <RSIMP>
+       <PARAMETER>I_SO_SEM_OT</PARAMETER>
+       <DEFAULT>'X'</DEFAULT>
+       <OPTIONAL>X</OPTIONAL>
+       <REFERENCE>X</REFERENCE>
+       <TYP>XFELD</TYP>
+      </RSIMP>
+     </IMPORT>
+     <TABLES>
+      <RSTBL>
+       <PARAMETER>T_SALDO</PARAMETER>
+       <DBSTRUCT>ZSEPEX_S_SALDO</DBSTRUCT>
+      </RSTBL>
+     </TABLES>
+     <DOCUMENTATION>
+      <RSFDO>
+       <PARAMETER>I_SO_SEM_OT</PARAMETER>
+       <KIND>P</KIND>
+       <STEXT>X = desconta o que já está reservado por OT de regularização aberta</STEXT>
+      </RSFDO>
+      <RSFDO>
+       <PARAMETER>T_SALDO</PARAMETER>
+       <KIND>P</KIND>
+       <STEXT>Saldo pendente por material/centro/lote (unidade do item)</STEXT>
+      </RSFDO>
+     </DOCUMENTATION>
+    </item>
+   </FUNCTIONS>
+  </asx:values>
+ </asx:abap>
+</abapGit>
