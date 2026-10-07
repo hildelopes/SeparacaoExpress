@@ -37,8 +37,8 @@ CLASS zcl_sepex_sinc IMPLEMENTATION.
 
   METHOD sincronizar_remessa.
     DATA: ls_cab      TYPE zsepex_t_cab,
-          lt_itm      TYPE zcl_sepex_controle=>ty_t_itm,
-          lt_ot       TYPE zcl_sepex_controle=>ty_t_ot,
+          lt_itm      TYPE zsepex_t_itm_tt,
+          lt_ot       TYPE zsepex_t_ot_tt,
           ls_ot       TYPE zsepex_t_ot,
           lt_ltap     TYPE zcl_sepex_wm=>ty_t_ltap,
           ls_ltap     TYPE ltap,
@@ -195,9 +195,9 @@ CLASS zcl_sepex_sinc IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD sincronizar_todos.
-    DATA: lt_cab    TYPE zcl_sepex_controle=>ty_t_cab,
+    DATA: lt_cab    TYPE zsepex_t_cab_tt,
           ls_cab    TYPE zsepex_t_cab,
-          lr_status TYPE zcl_sepex_controle=>ty_r_status,
+          lr_status TYPE RANGE OF zsepex_status,
           ls_rst    LIKE LINE OF lr_status,
           lx_erro   TYPE REF TO zcx_sepex,
           lv_status TYPE zsepex_status.

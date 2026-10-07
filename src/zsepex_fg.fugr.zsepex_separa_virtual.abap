@@ -30,7 +30,7 @@ FUNCTION zsepex_separa_virtual.
         lx_erro   TYPE REF TO zcx_sepex,
         ls_par    TYPE zsepex_t_par,
         ls_cab    TYPE zsepex_t_cab,
-        lt_itm    TYPE zcl_sepex_controle=>ty_t_itm,
+        lt_itm    TYPE zsepex_t_itm_tt,
         ls_itm    TYPE zsepex_t_itm,
         lt_itens  TYPE zcl_sepex_wm=>ty_t_item_lote,
         ls_item   TYPE zcl_sepex_wm=>ty_item_lote,

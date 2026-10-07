@@ -22,7 +22,7 @@ CLASS zcl_sepex_ud DEFINITION
         !iv_charg  TYPE charg_d
         !iv_menge  TYPE zsepex_qtd
         !iv_meins  TYPE meins
-        !it_lgtyp  TYPE zcl_sepex_controle=>ty_t_lgtyp
+        !it_lgtyp  TYPE zsepex_t_par_lt_tt
         !it_excluir_lenum TYPE ty_t_lenum OPTIONAL
       EXPORTING
         !et_ud     TYPE zsepex_t_ud_tt

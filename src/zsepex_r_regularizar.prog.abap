@@ -88,8 +88,8 @@ FORM f_executar.
 ENDFORM.
 
 *&---------------------------------------------------------------------*
-FORM f_ler_cabs CHANGING ct_cab TYPE zcl_sepex_controle=>ty_t_cab.
-  DATA: lr_status TYPE zcl_sepex_controle=>ty_r_status,
+FORM f_ler_cabs CHANGING ct_cab TYPE zsepex_t_cab_tt.
+  DATA: lr_status TYPE RANGE OF zsepex_status,
         ls_rst    LIKE LINE OF lr_status.
 
   IF s_status[] IS INITIAL.
@@ -108,7 +108,7 @@ ENDFORM.
 
 *&---------------------------------------------------------------------*
 FORM f_criar_ots.
-  DATA: lt_cab    TYPE zcl_sepex_controle=>ty_t_cab,
+  DATA: lt_cab    TYPE zsepex_t_cab_tt,
         ls_cab    TYPE zsepex_t_cab,
         lt_return TYPE STANDARD TABLE OF bapiret2,
         ls_return TYPE bapiret2,
@@ -177,7 +177,7 @@ ENDFORM.
 FORM f_sincronizar.
   DATA: lo_log  TYPE REF TO zcl_sepex_log,
         lx_erro TYPE REF TO zcx_sepex,
-        lt_cab  TYPE zcl_sepex_controle=>ty_t_cab,
+        lt_cab  TYPE zsepex_t_cab_tt,
         ls_cab  TYPE zsepex_t_cab.
 
   CREATE OBJECT lo_log EXPORTING iv_extnumber = 'ZSEPEX02'.
@@ -199,11 +199,11 @@ ENDFORM.
 
 *&---------------------------------------------------------------------*
 FORM f_montar_saida.
-  DATA: lt_cab   TYPE zcl_sepex_controle=>ty_t_cab,
+  DATA: lt_cab   TYPE zsepex_t_cab_tt,
         ls_cab   TYPE zsepex_t_cab,
-        lt_itm   TYPE zcl_sepex_controle=>ty_t_itm,
+        lt_itm   TYPE zsepex_t_itm_tt,
         ls_itm   TYPE zsepex_t_itm,
-        lt_ot    TYPE zcl_sepex_controle=>ty_t_ot,
+        lt_ot    TYPE zsepex_t_ot_tt,
         ls_ot    TYPE zsepex_t_ot,
         ls_saida TYPE ty_saida,
         lt_saida_msg LIKE gt_saida.

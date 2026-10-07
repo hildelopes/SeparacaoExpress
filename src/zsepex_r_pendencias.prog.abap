@@ -96,15 +96,15 @@ ENDFORM.
 
 *&---------------------------------------------------------------------*
 FORM f_montar_pendencias.
-  DATA: lt_cab    TYPE zcl_sepex_controle=>ty_t_cab,
+  DATA: lt_cab    TYPE zsepex_t_cab_tt,
         ls_cab    TYPE zsepex_t_cab,
-        lt_itm    TYPE zcl_sepex_controle=>ty_t_itm,
+        lt_itm    TYPE zsepex_t_itm_tt,
         ls_itm    TYPE zsepex_t_itm,
-        lt_ot     TYPE zcl_sepex_controle=>ty_t_ot,
+        lt_ot     TYPE zsepex_t_ot_tt,
         ls_ot     TYPE zsepex_t_ot,
         ls_pend   TYPE ty_pend,
         ls_color  TYPE lvc_s_scol,
-        lr_status TYPE zcl_sepex_controle=>ty_r_status,
+        lr_status TYPE RANGE OF zsepex_status,
         ls_rst    LIKE LINE OF lr_status.
 
   IF s_status[] IS NOT INITIAL.

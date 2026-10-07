@@ -7,10 +7,10 @@ CLASS zcl_sepex_controle DEFINITION
   CREATE PUBLIC.
 
   PUBLIC SECTION.
-    TYPES ty_t_itm TYPE STANDARD TABLE OF zsepex_t_itm WITH DEFAULT KEY.
-    TYPES ty_t_ot  TYPE STANDARD TABLE OF zsepex_t_ot  WITH DEFAULT KEY.
-    TYPES ty_t_cab TYPE STANDARD TABLE OF zsepex_t_cab WITH DEFAULT KEY.
-    TYPES ty_t_lgtyp TYPE STANDARD TABLE OF zsepex_t_par_lt WITH DEFAULT KEY.
+    TYPES ty_t_itm   TYPE zsepex_t_itm_tt.
+    TYPES ty_t_ot    TYPE zsepex_t_ot_tt.
+    TYPES ty_t_cab   TYPE zsepex_t_cab_tt.
+    TYPES ty_t_lgtyp TYPE zsepex_t_par_lt_tt.
     TYPES ty_r_status TYPE RANGE OF zsepex_status.
     TYPES ty_r_tknum  TYPE RANGE OF tknum.
 

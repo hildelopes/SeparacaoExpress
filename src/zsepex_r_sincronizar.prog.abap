@@ -23,11 +23,11 @@ START-OF-SELECTION.
 FORM f_executar.
   DATA: lo_log    TYPE REF TO zcl_sepex_log,
         lx_erro   TYPE REF TO zcx_sepex,
-        lt_cab    TYPE zcl_sepex_controle=>ty_t_cab,
+        lt_cab    TYPE zsepex_t_cab_tt,
         ls_cab    TYPE zsepex_t_cab,
         lt_return TYPE bapiret2_t,
         ls_return TYPE bapiret2,
-        lr_status TYPE zcl_sepex_controle=>ty_r_status,
+        lr_status TYPE RANGE OF zsepex_status,
         ls_rst    LIKE LINE OF lr_status,
         lv_proc   TYPE i,
         lv_conc   TYPE i,
