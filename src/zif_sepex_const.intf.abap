@@ -42,6 +42,6 @@ INTERFACE zif_sepex_const
 
   "! Indicador de confirmação usado na L_TO_CONFIRM (mesmo valor do
   "! Z_WM_CONFIRMA_ICENTRO em produção)
-  CONSTANTS gc_quknz TYPE ltap-quknz VALUE '4'.
+  CONSTANTS gc_quknz TYPE c LENGTH 1 VALUE '4'.
 
 ENDINTERFACE.

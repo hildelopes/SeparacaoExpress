@@ -8,7 +8,7 @@ CLASS zcl_sepex_log DEFINITION
   PUBLIC SECTION.
     METHODS constructor
       IMPORTING
-        !iv_extnumber TYPE balnrext OPTIONAL.
+        VALUE(iv_extnumber) TYPE balnrext OPTIONAL.
 
     "! Mensagem da classe ZSEPEX
     METHODS add_msg
