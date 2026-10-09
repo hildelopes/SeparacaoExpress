@@ -4,7 +4,7 @@
 
 | Repositório | Commit | Como levar ao SAP |
 |---|---|---|
-| `hildelopes/ZWMR0010` | `bc12fe7` | Fontes planos: comparar com a SE38/SE37 (Utilitários → Comparar) e colar os trechos marcados `SEPEX`, ou colar o include inteiro |
+| `hildelopes/ZWMR0010` | `e5c9301` | Fontes planos: comparar com a SE38/SE37 (Utilitários → Comparar) e colar os trechos marcados `SEPEX`, ou colar o include inteiro |
 | `hildelopes/ArmazemGeral` | `6ddf84c` | abapGit: Pull do repositório ZARMAZEM_GERAL (só `ZCL_ARMAZEM_GERAL` muda) |
 
 Ordem: 1) pacote ZSEPEX ativo; 2) `ZTM_REG_TRANSFERENCIA`; 3) `ZWM_ICENTROS`;
