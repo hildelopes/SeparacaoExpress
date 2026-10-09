@@ -1,4 +1,4 @@
-"! Separação Express - verificação do objeto de autorização ZSEPEX_AUT
+"! Separação Express - verificação do objeto de autorização ZSEPEX_EXP
 CLASS zcl_sepex_auth DEFINITION
   PUBLIC
   FINAL
@@ -29,7 +29,7 @@ ENDCLASS.
 CLASS zcl_sepex_auth IMPLEMENTATION.
 
   METHOD tem_autorizacao.
-    AUTHORITY-CHECK OBJECT 'ZSEPEX_AUT'
+    AUTHORITY-CHECK OBJECT 'ZSEPEX_EXP'
       ID 'ACTVT' FIELD iv_actvt
       ID 'LGNUM' FIELD iv_lgnum.
     IF sy-subrc = 0.

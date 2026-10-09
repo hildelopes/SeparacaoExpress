@@ -5,7 +5,7 @@
    <VSEOCLASS>
     <CLSNAME>ZCL_SEPEX_AUTH</CLSNAME>
     <LANGU>P</LANGU>
-    <DESCRIPT>Separação Express - Autorização (ZSEPEX_AUT)</DESCRIPT>
+    <DESCRIPT>Separação Express - Autorização (ZSEPEX_EXP)</DESCRIPT>
     <EXPOSURE>2</EXPOSURE>
     <STATE>1</STATE>
     <CLSCCINCL>X</CLSCCINCL>

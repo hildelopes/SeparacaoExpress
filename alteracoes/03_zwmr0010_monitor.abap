@@ -78,7 +78,7 @@ FORM zf_separar_express.
   " Autorização Express (liberar)
   IF zcl_sepex_auth=>tem_autorizacao( iv_actvt = zif_sepex_const=>gc_actvt-liberar
                                       iv_lgnum = 'DFC' ) = space.
-    MESSAGE 'Sem autorização para Separação Express (ZSEPEX_AUT 01)' TYPE 'I'.
+    MESSAGE 'Sem autorização para Separação Express (ZSEPEX_EXP 01)' TYPE 'I'.
     RETURN.
   ENDIF.
 

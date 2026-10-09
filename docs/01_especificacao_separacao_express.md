@@ -142,13 +142,13 @@ Em todos os momentos, total WM = total MM. LX23 fecha em zero.
 | `ZCL_SEPEX_LOTE` | Escolha de lote FIFO pelo saldo WM, divisão de lote |
 | `ZCL_SEPEX_MM` | Transferências 309 via `BAPI_GOODSMVT_CREATE` para ajuste de lote |
 | `ZCL_SEPEX_LOG` | Application log (objeto `ZSEPEX`, SLG1) |
-| `ZCL_SEPEX_AUTH` | Verificação do objeto de autorização `ZSEPEX_AUT` (campos `LGNUM`, `ACTVT`) |
+| `ZCL_SEPEX_AUTH` | Verificação do objeto de autorização `ZSEPEX_EXP` (campos `LGNUM`, `ACTVT`) |
 
 ### 4.4 Demais
 
 - Classe de mensagens `ZSEPEX`.
 - Objeto de log `ZSEPEX` (SLG0).
-- Objeto de autorização `ZSEPEX_AUT`: 01 liberar (Z01), 02 regularizar (Z02), 03 exibir (Z03), 85 desfazer.
+- Objeto de autorização `ZSEPEX_EXP`: 01 liberar (Z01), 02 regularizar (Z02), 03 exibir (Z03), 85 desfazer.
 - Objeto de bloqueio `EZSEPEX_CAB`.
 - Variantes e jobs: Z03 diário 06:00 com e-mail; Z04 a cada 30 minutos.
 - Repositório em formato abapGit (pasta `src/`), para importação direta no pacote.

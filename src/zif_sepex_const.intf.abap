@@ -22,7 +22,7 @@ INTERFACE zif_sepex_const
                etiqueta TYPE zsepex_tipo_vol VALUE 'E',
              END OF gc_tipo_vol.
 
-  "! Atividades do objeto de autorização ZSEPEX_AUT
+  "! Atividades do objeto de autorização ZSEPEX_EXP
   CONSTANTS: BEGIN OF gc_actvt,
                liberar     TYPE activ_auth VALUE '01',
                exibir      TYPE activ_auth VALUE '03',

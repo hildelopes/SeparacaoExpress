@@ -37,7 +37,7 @@ docs/                  especificação, análises, decisões e apresentação
 | `ZSEPEX_A_ICENTROS`, `ZSEPEX_A_ZAGT_LOG` | Appends | Campo `ZZEXPRESS` em `ZWM_ICENTROS` e `ZAGT_LOG` |
 | `ZSEPEX_D_*`, `ZSEPEX_*` | Domínios / elementos | Status (0,1,2,3,4,5,9), origem (I/A), tipo de volume (U/E), dias, quantidade |
 | `EZSEPEX_CAB` | Bloqueio | Por depósito + remessa |
-| `ZSEPEX_AUT` | Autorização | ACTVT (01 liberar, 03 exibir, 16 regularizar, 85 desfazer) + LGNUM |
+| `ZSEPEX_EXP` | Autorização (**criar na SU21, não vem pelo abapGit**) | ACTVT (01 liberar, 03 exibir, 16 regularizar, 85 desfazer) + LGNUM |
 | `ZSEPEX` | Mensagens | 000 a 030 |
 
 ### Código
@@ -51,7 +51,7 @@ docs/                  especificação, análises, decisões e apresentação
 | `ZCL_SEPEX_WM` | OT virtual (`L_TO_CREATE_DN` + `L_TO_CONFIRM`), OT de regularização (`L_TO_CREATE_MULTIPLE`), LTAP, saldo da posição virtual |
 | `ZCL_SEPEX_SINC` | Sincroniza itens/OTs/remessa e fecha o processo |
 | `ZCL_SEPEX_LOG` | Application Log (objeto `ZSEPEX`, subobjeto `EXPRESS`) |
-| `ZCL_SEPEX_AUTH` | Verificação de `ZSEPEX_AUT` |
+| `ZCL_SEPEX_AUTH` | Verificação de `ZSEPEX_EXP` |
 | `ZSEPEX_FG` | FMs `ZSEPEX_SEPARA_VIRTUAL`, `ZSEPEX_CRIA_OT_REGUL`, `ZSEPEX_SALDO_PENDENTE` (interface clássica para o engine e a classe) |
 | `ZSEPEX_R_REGULARIZAR` / **ZSEPEX02** | Itens pendentes; criar OTs de regularização; sincronizar; modo teste |
 | `ZSEPEX_R_PENDENCIAS` / **ZSEPEX03** | Pendências com alerta de prazo; versão de fechamento (saldo da posição virtual); e-mail |
@@ -70,10 +70,11 @@ Fase 1b (ainda não no repositório): RF Express `ZSEPEXRF` e adaptação do `ZW
 
 | Passo | Transação | O quê |
 |---|---|---|
+| 0 | **SU21** | **Antes do pull.** Criar o objeto `ZSEPEX_EXP` na classe `AAAB`, texto "Separação Express - execução", campos `ACTVT` e `LGNUM`, atividades permitidas 01, 03, 16, 85. Salvar na request, clicar em "Gerar posteriormente SAP_ALL" (ou `RSUSR406`), logoff/logon. O SUSO não está em `src/` porque o import via abapGit gravou o objeto sem campos e o SAP_ALL regenerado trava a correção (ver `docs/referencia_zsepex_exp.suso.xml` só como referência). Leva o objeto para QAS/PRD pela request de transporte. |
 | 1 | **SLG0** | Objeto `ZSEPEX`, subobjeto `EXPRESS` |
 | 2 | **SE54** | Gerar manutenção SM30 para `ZSEPEX_T_PAR` e `ZSEPEX_T_PAR_LT` (grupo de funções `ZSEPEX_TMG`) |
 | 3 | **SM30** | `ZSEPEX_T_PAR`: `LGNUM = DFC`, `LGTYP_VIRT = 9EX`, `LGBER_VIRT = 001`, `LGPLA_VIRT = EXPRESS`, `BWLVS_REG` = tipo de movimento WM da regularização, `OT_IMEDIATA = X`, `DIAS_ALERTA = 7`, e-mails separados por `;`, `ATIVO = X`. `ZSEPEX_T_PAR_LT`: `DIA`, `DTA`, `XDC`, `DII` com prioridade |
-| 4 | **PFCG** | Perfis com `ZSEPEX_AUT` (01 encarregado, 16 regularização, 03 consulta) e transações ZSEPEX02/03/04 |
+| 4 | **PFCG** | Perfis com `ZSEPEX_EXP` (01 encarregado, 16 regularização, 03 consulta) e transações ZSEPEX02/03/04 |
 | 5 | **SM36** | `ZSEPEX_R_SINCRONIZAR` a cada 30 min; `ZSEPEX_R_PENDENCIAS` diário com `P_EMAIL = X` |
 
 ### Customizing WM (consultor) e prova em QAS

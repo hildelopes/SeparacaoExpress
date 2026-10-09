@@ -84,7 +84,7 @@ Total WM = total MM em todas as linhas. LX23 fecha em zero.
 | `ZCL_SEPEX_WM` | Wrappers de `L_TO_CREATE_DN`, `L_TO_CONFIRM`, `L_TO_CREATE_MULTIPLE`, leitura `LTAP/LQUA` |
 | `ZCL_SEPEX_SINC` | Sincronização de itens, OTs e remessa; fechamento do processo |
 | `ZCL_SEPEX_LOG` | Application log objeto `ZSEPEX` |
-| `ZCL_SEPEX_AUTH` | Objeto `ZSEPEX_AUT` (`LGNUM`, `ACTVT`: 01 liberar, 02 regularizar, 03 exibir, 85 ajustar) |
+| `ZCL_SEPEX_AUTH` | Objeto `ZSEPEX_EXP` (`LGNUM`, `ACTVT`: 01 liberar, 02 regularizar, 03 exibir, 85 ajustar) |
 
 ### 4.3 Programas e transações
 
@@ -98,7 +98,7 @@ Total WM = total MM em todas as linhas. LX23 fecha em zero.
 
 ### 4.4 Demais
 
-Classe de mensagens `ZSEPEX`, objeto de log `ZSEPEX`, objeto de autorização `ZSEPEX_AUT`,
+Classe de mensagens `ZSEPEX`, objeto de log `ZSEPEX`, objeto de autorização `ZSEPEX_EXP`,
 objeto de bloqueio `EZSEPEX_CAB`, variantes e jobs. Repositório em formato abapGit em `src/`.
 
 ## 5. Alterações em objetos existentes
@@ -156,7 +156,7 @@ no cockpit. `DETERMINAR_LOTES_REMESSA` passa a descontar `ZSEPEX_SALDO_PENDENTE`
 
 | Tema | Regra |
 |---|---|
-| Quem usa | Encarregado ou gestão, só no último dia do fechamento. Autorização `ZSEPEX_AUT` 01. |
+| Quem usa | Encarregado ou gestão, só no último dia do fechamento. Autorização `ZSEPEX_EXP` 01. |
 | Lote | O lote da remessa de transferência é o determinado pela `ZSD_ICENTRO_ESTOQ`. A OT de regularização nomeia UDs desse lote. Fase 1: troca de UD só dentro do mesmo lote. Fase 2: troca de lote com 309 nos dois centros, habilitada por `AJUSTE_LOTE` após o fiscal aprovar. |
 | Prazo | Até 7 dias (`DIAS_ALERTA`). Acima disso só sinaliza; a separação continua. |
 | UD não encontrada | Operador confirma com diferença na LM45 (vai para 999). Sincronização marca saldo pendente; Z02 recria OT para o restante em outra UD. Diferença física tratada pelo inventário WM padrão. |

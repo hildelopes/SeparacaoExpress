@@ -3,31 +3,31 @@
  <asx:abap xmlns:asx="http://www.sap.com/abapxml" version="1.0">
   <asx:values>
    <TOBJ>
-    <OBJCT>ZSEPEX_AUT</OBJCT>
+    <OBJCT>ZSEPEX_EXP</OBJCT>
     <OCLSS>AAAB</OCLSS>
     <FIELD1>ACTVT</FIELD1>
     <FIELD2>LGNUM</FIELD2>
    </TOBJ>
    <TOBJT>
     <LANGU>P</LANGU>
-    <OBJECT>ZSEPEX_AUT</OBJECT>
+    <OBJECT>ZSEPEX_EXP</OBJECT>
     <TTEXT>Separação Express - execução</TTEXT>
    </TOBJT>
    <TACTZ>
     <TACTZ>
-     <BROBJ>ZSEPEX_AUT</BROBJ>
+     <BROBJ>ZSEPEX_EXP</BROBJ>
      <ACTVT>01</ACTVT>
     </TACTZ>
     <TACTZ>
-     <BROBJ>ZSEPEX_AUT</BROBJ>
+     <BROBJ>ZSEPEX_EXP</BROBJ>
      <ACTVT>03</ACTVT>
     </TACTZ>
     <TACTZ>
-     <BROBJ>ZSEPEX_AUT</BROBJ>
+     <BROBJ>ZSEPEX_EXP</BROBJ>
      <ACTVT>16</ACTVT>
     </TACTZ>
     <TACTZ>
-     <BROBJ>ZSEPEX_AUT</BROBJ>
+     <BROBJ>ZSEPEX_EXP</BROBJ>
      <ACTVT>85</ACTVT>
     </TACTZ>
    </TACTZ>
