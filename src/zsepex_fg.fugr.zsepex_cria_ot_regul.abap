@@ -43,7 +43,9 @@ FUNCTION zsepex_cria_ot_regul.
         lv_idx     TYPE i.
 
   CLEAR: e_tanum, e_itens_ok, e_itens_pend, t_return[], t_ud[].
-  CREATE OBJECT lo_log EXPORTING iv_extnumber = i_vbeln.
+  DATA lv_ext TYPE balnrext.
+  lv_ext = i_vbeln.
+  CREATE OBJECT lo_log EXPORTING iv_extnumber = lv_ext.
 
   TRY.
       ls_par   = zcl_sepex_controle=>ler_param( i_lgnum ).

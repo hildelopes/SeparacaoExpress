@@ -210,7 +210,7 @@ FORM f_exibir.
         lo_col   TYPE REF TO cl_salv_column_table,
         lo_funcs TYPE REF TO cl_salv_functions_list,
         lo_disp  TYPE REF TO cl_salv_display_settings,
-        lx_salv  TYPE REF TO cx_salv_msg,
+        lx_salv  TYPE REF TO cx_salv_error,
         lx_nf    TYPE REF TO cx_salv_not_found,
         lv_tit   TYPE lvc_title.
 
@@ -234,7 +234,7 @@ FORM f_exibir.
           CATCH cx_salv_not_found INTO lx_nf.
         ENDTRY.
         lo_alv->display( ).
-      CATCH cx_salv_msg INTO lx_salv.
+      CATCH cx_salv_error INTO lx_salv.
         MESSAGE lx_salv TYPE 'S' DISPLAY LIKE 'E'.
     ENDTRY.
     RETURN.
@@ -332,7 +332,9 @@ FORM f_enviar_email.
     WRITE ls_pend-qtd_pend TO lv_qtdp UNIT ls_pend-meins LEFT-JUSTIFIED.
     WRITE ls_pend-menge    TO lv_qtd  UNIT ls_pend-meins LEFT-JUSTIFIED.
     CONDENSE: lv_qtdp, lv_qtd.
-    lv_linha = |  Remessa { ls_pend-vbeln ALPHA = OUT } - { ls_pend-matnr ALPHA = OUT } { ls_pend-maktx } lote { ls_pend-charg }: pendente { lv_qtdp } de { lv_qtd } { ls_pend-meins }|.
+    lv_linha = |  Remessa { ls_pend-vbeln ALPHA = OUT } - |
+            && |{ ls_pend-matnr ALPHA = OUT } { ls_pend-maktx } lote { ls_pend-charg }: |
+            && |pendente { lv_qtdp } de { lv_qtd } { ls_pend-meins }|.
     IF ls_pend-alerta = icon_led_red.
       lv_linha = |{ lv_linha }  ** ACIMA DO PRAZO **|.
     ENDIF.
@@ -347,7 +349,13 @@ FORM f_enviar_email.
     WRITE ls_pend-qtd_pend TO lv_qtdp UNIT ls_pend-meins LEFT-JUSTIFIED.
     WRITE ls_pend-menge    TO lv_qtd  UNIT ls_pend-meins LEFT-JUSTIFIED.
     CONDENSE: lv_qtdp, lv_qtd.
-    lv_csv = |{ ls_pend-origem };{ ls_pend-tknum ALPHA = OUT };{ ls_pend-vbeln ALPHA = OUT };{ ls_pend-posnr };{ ls_pend-werks };{ ls_pend-matnr ALPHA = OUT };{ ls_pend-maktx };{ ls_pend-charg };{ lv_qtd };{ ls_pend-qtd_regul };{ lv_qtdp };{ ls_pend-meins };{ ls_pend-tanum };{ ls_pend-status_txt };{ ls_pend-dt_virt DATE = USER };{ ls_pend-dt_pgi DATE = USER };{ ls_pend-dias }|.
+    lv_csv = |{ ls_pend-origem };{ ls_pend-tknum ALPHA = OUT };|
+          && |{ ls_pend-vbeln ALPHA = OUT };{ ls_pend-posnr };{ ls_pend-werks };|
+          && |{ ls_pend-matnr ALPHA = OUT };{ ls_pend-maktx };{ ls_pend-charg };|
+          && |{ lv_qtd };{ ls_pend-qtd_regul };{ lv_qtdp };{ ls_pend-meins };|
+          && |{ ls_pend-tanum };{ ls_pend-status_txt };|
+          && |{ ls_pend-dt_virt DATE = USER };{ ls_pend-dt_pgi DATE = USER };|
+          && |{ ls_pend-dias }|.
     ls_texto = lv_csv. APPEND ls_texto TO lt_csv.
   ENDLOOP.
 

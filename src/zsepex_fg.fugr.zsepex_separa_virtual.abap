@@ -46,7 +46,9 @@ FUNCTION zsepex_separa_virtual.
         ls_ret    TYPE bapiret2.
 
   CLEAR: e_tanum, e_tanum_regul, t_return[].
-  CREATE OBJECT lo_log EXPORTING iv_extnumber = i_vbeln.
+  DATA lv_ext TYPE balnrext.
+  lv_ext = i_vbeln.
+  CREATE OBJECT lo_log EXPORTING iv_extnumber = lv_ext.
 
   TRY.
       ls_par = zcl_sepex_controle=>ler_param( i_lgnum ).

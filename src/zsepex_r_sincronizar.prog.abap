@@ -33,7 +33,9 @@ FORM f_executar.
         lv_conc   TYPE i,
         lv_status TYPE zsepex_status.
 
-  CREATE OBJECT lo_log EXPORTING iv_extnumber = 'SINCRONIZACAO'.
+  DATA lv_ext TYPE balnrext.
+  lv_ext = 'SINCRONIZACAO'.
+  CREATE OBJECT lo_log EXPORTING iv_extnumber = lv_ext.
 
   IF s_vbeln[] IS INITIAL.
     zcl_sepex_sinc=>sincronizar_todos( EXPORTING iv_lgnum       = p_lgnum

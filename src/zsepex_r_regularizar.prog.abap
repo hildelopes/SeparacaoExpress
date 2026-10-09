@@ -180,7 +180,9 @@ FORM f_sincronizar.
         lt_cab  TYPE zsepex_t_cab_tt,
         ls_cab  TYPE zsepex_t_cab.
 
-  CREATE OBJECT lo_log EXPORTING iv_extnumber = 'ZSEPEX02'.
+  DATA lv_ext TYPE balnrext.
+  lv_ext = 'ZSEPEX02'.
+  CREATE OBJECT lo_log EXPORTING iv_extnumber = lv_ext.
   PERFORM f_ler_cabs CHANGING lt_cab.
   LOOP AT lt_cab INTO ls_cab.
     TRY.
@@ -251,7 +253,7 @@ FORM f_exibir_alv.
         lo_cols    TYPE REF TO cl_salv_columns_table,
         lo_col     TYPE REF TO cl_salv_column_table,
         lo_funcs   TYPE REF TO cl_salv_functions_list,
-        lx_salv    TYPE REF TO cx_salv_msg,
+        lx_salv    TYPE REF TO cx_salv_error,
         lx_nf      TYPE REF TO cx_salv_not_found.
 
   IF gt_saida IS INITIAL.
@@ -294,7 +296,7 @@ FORM f_exibir_alv.
         CATCH cx_salv_not_found INTO lx_nf.
       ENDTRY.
       lo_alv->display( ).
-    CATCH cx_salv_msg INTO lx_salv.
+    CATCH cx_salv_error INTO lx_salv.
       MESSAGE lx_salv TYPE 'S' DISPLAY LIKE 'E'.
   ENDTRY.
 ENDFORM.
