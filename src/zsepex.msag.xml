@@ -194,6 +194,36 @@
      <MSGNR>030</MSGNR>
      <TEXT>Sincronização: &amp;1 processo(s) atualizados, &amp;2 concluído(s)</TEXT>
     </T100>
+    <T100>
+     <SPRSL>P</SPRSL>
+     <ARBGB>ZSEPEX</ARBGB>
+     <MSGNR>031</MSGNR>
+     <TEXT>Material &amp;1 lote &amp;2: &amp;3 &amp;4 sem saldo no avulso; reabastecer (NT 919)</TEXT>
+    </T100>
+    <T100>
+     <SPRSL>P</SPRSL>
+     <ARBGB>ZSEPEX</ARBGB>
+     <MSGNR>032</MSGNR>
+     <TEXT>Material &amp;1 lote &amp;2: reabastecimento do avulso criado (&amp;3)</TEXT>
+    </T100>
+    <T100>
+     <SPRSL>P</SPRSL>
+     <ARBGB>ZSEPEX</ARBGB>
+     <MSGNR>033</MSGNR>
+     <TEXT>Material &amp;1 lote &amp;2: reabastecimento em andamento (NT &amp;3 / OT &amp;4)</TEXT>
+    </T100>
+    <T100>
+     <SPRSL>P</SPRSL>
+     <ARBGB>ZSEPEX</ARBGB>
+     <MSGNR>034</MSGNR>
+     <TEXT>Material &amp;1 lote &amp;2: erro no reabastecimento: &amp;3</TEXT>
+    </T100>
+    <T100>
+     <SPRSL>P</SPRSL>
+     <ARBGB>ZSEPEX</ARBGB>
+     <MSGNR>035</MSGNR>
+     <TEXT>Material &amp;1 lote &amp;2: &amp;3 &amp;4 sem palete inteiro disponível nas posições</TEXT>
+    </T100>
    </T100>
   </asx:values>
  </asx:abap>

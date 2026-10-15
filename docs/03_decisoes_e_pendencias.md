@@ -25,6 +25,7 @@ Registro vivo. Cada resposta do negócio ou do consultor entra aqui com a data.
 | D14 | Armazém Geral, ponto de desvio | Confirmado (07/10): a ordem ZRTA nasce sem lote, o lote é definido na remessa, a OT sai pelo botão "Criar OT" e a confirmação é no RF. O Express entra no mesmo ponto da classe. A ZRTA tem a mesma pressão de prazo no fechamento. |
 | D15 | Conferência de expedição no Express | **Obrigatória.** A `ZWMT011` serve só para liberar o faturamento no dia 31 sem a conferência; a conferência acontece no carregamento, nos dias seguintes, contra os volumes separados na regularização. Substitui a opção C registrada acima. |
 | D16 | Identidade do volume no Express | Sem HU SAP: a remessa já tem PGI e não aceita embalagem, e HU sem objeto exige depósito gerenciado por HU. O volume passa a ser a **UD** (etiqueta que o palete já tem) para palete inteiro e a **etiqueta de HU pré-impressa** para quantidade parcial, gravadas na tabela `ZSEPEX_T_VOL` pelo RF de regularização. A conferência (`ZWMRF0002`) lê essa tabela para carga Express. |
+| D17 | Avulso e reabastecimento na regularização | Fração de palete na regularização sai do avulso (tipo `AVS`, posição fixa MLGT), paletes inteiros das posições; avulso sem saldo gera NT/OT 919 automática (`REAB_AUTO`) pela função do botão Palletização do monitor. Motivo: teste em QAS (15/10) com 12 PAC do material 110001 lote 8 ficou "sem UD disponível" porque a seleção só olhava DIA/DTA/XDC/DII e as posições só saem palete inteiro. |
 
 ## O problema da HU no Express
 

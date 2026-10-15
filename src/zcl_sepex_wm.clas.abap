@@ -78,6 +78,36 @@ CLASS zcl_sepex_wm DEFINITION
       RETURNING
         VALUE(rt_ltap)  TYPE ty_t_ltap.
 
+    "! Reabastecimento do avulso em andamento (NT 919 aberta ou OT 919
+    "! aberta com destino no tipo de depósito do avulso) para o
+    "! material/lote. Mesma leitura da paletização do monitor
+    "! (ZFWM_PALETIZACAO_SEPARACAO).
+    CLASS-METHODS reabastecimento_pendente
+      IMPORTING
+        !iv_lgnum     TYPE lgnum
+        !iv_matnr     TYPE matnr
+        !iv_charg     TYPE charg_d
+        !iv_lgtyp_avs TYPE lgtyp
+        !iv_bwlvs     TYPE bwlvs DEFAULT '919'
+      EXPORTING
+        !ev_tbnum     TYPE tbnum
+        !ev_tanum     TYPE tanum.
+
+    "! Cria NT/OT 919 de um palete para o avulso pela função do monitor
+    "! ZFWM_REABASTECIMENTO (chamada dinâmica: se a função não existir
+    "! no sistema, levanta ZCX_SEPEX). Retorna a mensagem da função.
+    CLASS-METHODS reabastecer_avulso
+      IMPORTING
+        !iv_lgnum     TYPE lgnum
+        !iv_matnr     TYPE matnr
+        !iv_charg     TYPE charg_d
+        !iv_werks     TYPE werks_d
+        !iv_lgort     TYPE lgort_d
+      RETURNING
+        VALUE(rv_msg) TYPE bapi_msg
+      RAISING
+        zcx_sepex.
+
     "! Saldo (soma de LQUA-VERME) na posição virtual por material/lote
     CLASS-METHODS saldo_posicao_virtual
       IMPORTING
@@ -358,6 +388,82 @@ CLASS zcl_sepex_wm IMPLEMENTATION.
       WHERE lgnum = iv_lgnum
         AND tanum = iv_tanum
       ORDER BY PRIMARY KEY.
+  ENDMETHOD.
+
+  METHOD reabastecimento_pendente.
+    TYPES: BEGIN OF lty_ltap,
+             tanum TYPE tanum,
+             tbnum TYPE tbnum,
+           END OF lty_ltap.
+    DATA: ls_ltap TYPE lty_ltap,
+          lv_tbnum TYPE tbnum.
+
+    CLEAR: ev_tbnum, ev_tanum.
+
+    " OT 919 aberta com destino no avulso
+    SELECT p~tanum k~tbnum FROM ltap AS p
+      INNER JOIN ltak AS k ON p~lgnum = k~lgnum AND p~tanum = k~tanum
+      INTO ls_ltap UP TO 1 ROWS
+      WHERE p~lgnum = iv_lgnum
+        AND p~matnr = iv_matnr
+        AND p~charg = iv_charg
+        AND p~nltyp = iv_lgtyp_avs
+        AND p~pquit = space
+        AND k~bwlvs = iv_bwlvs.
+    ENDSELECT.
+    IF sy-subrc = 0.
+      ev_tanum = ls_ltap-tanum.
+      ev_tbnum = ls_ltap-tbnum.
+      RETURN.
+    ENDIF.
+
+    " NT 919 aberta (sem OT ou parcial)
+    SELECT p~tbnum FROM ltbp AS p
+      INNER JOIN ltbk AS k ON p~lgnum = k~lgnum AND p~tbnum = k~tbnum
+      INTO lv_tbnum UP TO 1 ROWS
+      WHERE p~lgnum = iv_lgnum
+        AND p~matnr = iv_matnr
+        AND p~charg = iv_charg
+        AND p~elikz = space
+        AND k~bwlvs = iv_bwlvs
+        AND ( k~statu = space OR k~statu = 'T' ).
+    ENDSELECT.
+    IF sy-subrc = 0.
+      ev_tbnum = lv_tbnum.
+    ENDIF.
+  ENDMETHOD.
+
+  METHOD reabastecer_avulso.
+    DATA: lv_fm   TYPE rs38l_fnam VALUE 'ZFWM_REABASTECIMENTO',
+          lv_erro TYPE xfeld,
+          lx_fm   TYPE REF TO cx_sy_dyn_call_error.
+
+    TRY.
+        CALL FUNCTION lv_fm
+          EXPORTING
+            i_lgnum       = iv_lgnum
+            i_matnr       = iv_matnr
+            i_charg       = iv_charg
+            i_werks       = iv_werks
+            i_lgort       = iv_lgort
+          IMPORTING
+            e_erro        = lv_erro
+            e_msg         = rv_msg
+          EXCEPTIONS
+            error_message = 1
+            OTHERS        = 2.
+        IF sy-subrc <> 0.
+          zcx_sepex=>raise_sy( ).
+        ENDIF.
+      CATCH cx_sy_dyn_call_error INTO lx_fm.
+        rv_msg = lx_fm->get_text( ).
+        zcx_sepex=>raise_msg( iv_msgno = '034' iv_msgv1 = iv_matnr
+                              iv_msgv2 = iv_charg iv_msgv3 = rv_msg ).
+    ENDTRY.
+    IF lv_erro = 'X'.
+      zcx_sepex=>raise_msg( iv_msgno = '034' iv_msgv1 = iv_matnr
+                            iv_msgv2 = iv_charg iv_msgv3 = rv_msg ).
+    ENDIF.
   ENDMETHOD.
 
   METHOD saldo_posicao_virtual.

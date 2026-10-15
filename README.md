@@ -26,7 +26,7 @@ docs/                  especificação, análises, decisões e apresentação
 
 | Objeto | Tipo | Descrição |
 |---|---|---|
-| `ZSEPEX_T_PAR` | Tabela (C) | Parâmetros por depósito: tipo/área/posição virtual, tipo de movimento da regularização, OT imediata, dias de alerta, e-mails, ativo |
+| `ZSEPEX_T_PAR` | Tabela (C) | Parâmetros por depósito: tipo/área/posição virtual, tipo de movimento da regularização, OT imediata, tipo de depósito do avulso (`LGTYP_AVS`), reabastecimento automático (`REAB_AUTO`), UD parcial (`UD_PARCIAL`), dias de alerta, e-mails, ativo |
 | `ZSEPEX_T_PAR_LT` | Tabela (C) | Tipos de depósito de origem da regularização, com prioridade (ex.: DIA, DTA, XDC, DII) |
 | `ZSEPEX_T_CAB` | Tabela (A) | Processo Express por remessa de saída: origem (I/A), id de origem, carga, grupo, status, datas |
 | `ZSEPEX_T_ITM` | Tabela (A) | Itens de lote da remessa: quantidade, OT virtual, quantidade regularizada, status |
@@ -35,7 +35,7 @@ docs/                  especificação, análises, decisões e apresentação
 | `ZSEPEX_S_SALDO`, `ZSEPEX_T_SALDO_TT` | Estrutura / tipo tabela | Saldo pendente por material/centro/lote (interface da `ZSEPEX_SALDO_PENDENTE`) |
 | `ZSEPEX_S_UD`, `ZSEPEX_T_UD_TT` | Estrutura / tipo tabela | UD selecionada para regularização |
 | `ZSEPEX_A_ICENTROS`, `ZSEPEX_A_ZAGT_LOG` | Appends | Campo `ZZEXPRESS` em `ZWM_ICENTROS` e `ZAGT_LOG` |
-| `ZSEPEX_D_*`, `ZSEPEX_*` | Domínios / elementos | Status (0,1,2,3,4,5,9), origem (I/A), tipo de volume (U/E), dias, quantidade |
+| `ZSEPEX_D_*`, `ZSEPEX_*` | Domínios / elementos | Status (0,1,2,3,4,5,9), origem (I/A), tipo de volume (U/E), dias, quantidade, tipo de depósito do avulso, reabastecimento automático, UD parcial |
 | `EZSEPEX_CAB` | Bloqueio | Por depósito + remessa |
 | `ZSEPEX_EXP` | Autorização (**criar na SU21, não vem pelo abapGit**) | ACTVT (01 liberar, 03 exibir, 16 regularizar, 85 desfazer) + LGNUM |
 | `ZSEPEX` | Mensagens | 000 a 030 |
@@ -47,15 +47,15 @@ docs/                  especificação, análises, decisões e apresentação
 | `ZIF_SEPEX_CONST` | Constantes (status, origem, tipo de volume, atividades, BAL) |
 | `ZCX_SEPEX` | Exceção T100 (`raise_msg`, `raise_sy`, `raise_from_bapiret`, `get_bapiret`) |
 | `ZCL_SEPEX_CONTROLE` | Parâmetros, cabeçalho/itens/OTs, bloqueio, saldo pendente, texto de status |
-| `ZCL_SEPEX_UD` | Seleção de UDs do lote (regras da simulação da carga fechada) |
-| `ZCL_SEPEX_WM` | OT virtual (`L_TO_CREATE_DN` + `L_TO_CONFIRM`), OT de regularização (`L_TO_CREATE_MULTIPLE`), LTAP, saldo da posição virtual |
+| `ZCL_SEPEX_UD` | Seleção de UDs/quants do lote: paletes inteiros das posições, fração de palete do avulso, fallback parcial opcional |
+| `ZCL_SEPEX_WM` | OT virtual (`L_TO_CREATE_DN` + `L_TO_CONFIRM`), OT de regularização (`L_TO_CREATE_MULTIPLE`), LTAP, saldo da posição virtual, reabastecimento do avulso (NT 919 pendente e chamada dinâmica de `ZFWM_REABASTECIMENTO`) |
 | `ZCL_SEPEX_SINC` | Sincroniza itens/OTs/remessa e fecha o processo |
 | `ZCL_SEPEX_LOG` | Application Log (objeto `ZSEPEX`, subobjeto `EXPRESS`) |
 | `ZCL_SEPEX_AUTH` | Verificação de `ZSEPEX_EXP` |
 | `ZSEPEX_FG` | FMs `ZSEPEX_SEPARA_VIRTUAL`, `ZSEPEX_CRIA_OT_REGUL`, `ZSEPEX_SALDO_PENDENTE` (interface clássica para o engine e a classe) |
 | `ZSEPEX_R_REGULARIZAR` / **ZSEPEX02** | Itens pendentes; criar OTs de regularização; sincronizar; modo teste |
 | `ZSEPEX_R_PENDENCIAS` / **ZSEPEX03** | Pendências com alerta de prazo; versão de fechamento (saldo da posição virtual); e-mail |
-| `ZSEPEX_R_SINCRONIZAR` / **ZSEPEX04** | Job de sincronização (SM36) |
+| `ZSEPEX_R_SINCRONIZAR` / **ZSEPEX04** | Job de sincronização (SM36); com `P_CRIAOT` tenta criar as OTs de regularização dos itens ainda sem OT (p.ex. após o reabastecimento) |
 
 Fase 1b (ainda não no repositório): RF Express `ZSEPEXRF` e adaptação do `ZWMRF0002`.
 
@@ -72,8 +72,8 @@ Fase 1b (ainda não no repositório): RF Express `ZSEPEXRF` e adaptação do `ZW
 |---|---|---|
 | 0 | **SU21** | **Antes do pull.** Criar o objeto `ZSEPEX_EXP` na classe `AAAB`, texto "Separação Express - execução", campos `ACTVT` e `LGNUM`, atividades permitidas 01, 03, 16, 85. Salvar na request, clicar em "Gerar posteriormente SAP_ALL" (ou `RSUSR406`), logoff/logon. O SUSO não está em `src/` porque o import via abapGit gravou o objeto sem campos e o SAP_ALL regenerado trava a correção (ver `docs/referencia_zsepex_exp.suso.xml` só como referência). Leva o objeto para QAS/PRD pela request de transporte. |
 | 1 | **SLG0** | Objeto `ZSEPEX`, subobjeto `EXPRESS` |
-| 2 | **SE54** | Gerar manutenção SM30 para `ZSEPEX_T_PAR` e `ZSEPEX_T_PAR_LT` (grupo de funções `ZSEPEX_TMG`) |
-| 3 | **SM30** | `ZSEPEX_T_PAR`: `LGNUM = DFC`, `LGTYP_VIRT = 9EX`, `LGBER_VIRT = 001`, `LGPLA_VIRT = EXPRESS`, `BWLVS_REG` = tipo de movimento WM da regularização, `OT_IMEDIATA = X`, `DIAS_ALERTA = 7`, e-mails separados por `;`, `ATIVO = X`. `ZSEPEX_T_PAR_LT`: `DIA`, `DTA`, `XDC`, `DII` com prioridade |
+| 2 | **SE54** | Gerar manutenção SM30 para `ZSEPEX_T_PAR` e `ZSEPEX_T_PAR_LT` (grupo de funções `ZSEPEX_TMG`). Depois de um pull que acrescente campos à `ZSEPEX_T_PAR` (como `LGTYP_AVS`, `REAB_AUTO`, `UD_PARCIAL`), regerar a manutenção na SE54 |
+| 3 | **SM30** | `ZSEPEX_T_PAR`: `LGNUM = DFC`, `LGTYP_VIRT = 9EX`, `LGBER_VIRT = 001`, `LGPLA_VIRT = EXPRESS`, `BWLVS_REG` = tipo de movimento WM da regularização, `OT_IMEDIATA = X`, `LGTYP_AVS = AVS` (tipo de depósito do avulso, posição fixa da MLGT), `REAB_AUTO = X` (cria NT/OT 919 quando o avulso não cobre), `UD_PARCIAL` em branco (não tira fração de palete de UD de posição), `DIAS_ALERTA = 7`, e-mails separados por `;`, `ATIVO = X`. `ZSEPEX_T_PAR_LT`: `DIA`, `DTA`, `XDC`, `DII` com prioridade |
 | 4 | **PFCG** | Perfis com `ZSEPEX_EXP` (01 encarregado, 16 regularização, 03 consulta) e transações ZSEPEX02/03/04 |
 | 5 | **SM36** | `ZSEPEX_R_SINCRONIZAR` a cada 30 min; `ZSEPEX_R_PENDENCIAS` diário com `P_EMAIL = X` |
 
@@ -95,6 +95,16 @@ Ver `alteracoes/README.md`. Aplicar depois do pull e da ativação do pacote.
 - O lote fixado na separação virtual é **obrigatório** na regularização (regra 1): as OTs
   de regularização nomeiam UDs do mesmo lote; sem UD do lote, o saldo fica pendente
   (mensagem 027) até o encarregado resolver pela ZSEPEX02.
+- Regra do armazém na OT de regularização (mesma da separação normal e da paletização do
+  monitor): **paletes inteiros** saem das posições com UD (`ZSEPEX_T_PAR_LT`, só UD com
+  saldo igual ou maior que a paletização `MLGN-LHMG1`); a **fração de palete** sai do
+  **avulso** (`LGTYP_AVS`, posição fixa da MLGT, sem UD). Se o avulso não cobre e
+  `REAB_AUTO = X`, o Express cria o reabastecimento NT/OT 919 pela mesma função do botão
+  Palletização do monitor (`ZFWM_REABASTECIMENTO`, um palete para o avulso) e deixa o item
+  pendente (mensagens 031 a 034); a OT de regularização sai na próxima execução da ZSEPEX02
+  ou do job ZSEPEX04, depois da confirmação do reabastecimento. Com `UD_PARCIAL = X` a fração
+  é tirada de uma UD de posição (comportamento antigo). Material sem paletização: qualquer
+  quant, parcial permitido.
 - OT de regularização aberta reserva as UDs; o saldo Express sem OT é descontado da
   disponibilidade do monitor e da classe (`ZSEPEX_SALDO_PENDENTE`).
 - Prazo (`DIAS_ALERTA`) só sinaliza; a separação continua.

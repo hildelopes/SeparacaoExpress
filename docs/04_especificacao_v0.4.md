@@ -62,7 +62,7 @@ Total WM = total MM em todas as linhas. LX23 fecha em zero.
 
 | Objeto | Tipo | Campos principais |
 |---|---|---|
-| `ZSEPEX_T_PAR` | Tabela | `LGNUM` (chave), `LGTYP_VIRT`, `LGBER_VIRT`, `LGPLA_VIRT`, `BWLVS_REG`, `OT_IMEDIATA`, `DIAS_ALERTA`, `EMAIL_DEST`, `ATIVO` |
+| `ZSEPEX_T_PAR` | Tabela | `LGNUM` (chave), `LGTYP_VIRT`, `LGBER_VIRT`, `LGPLA_VIRT`, `BWLVS_REG`, `OT_IMEDIATA`, `LGTYP_AVS` (tipo de depósito do avulso), `REAB_AUTO` (reabastecimento automático NT 919), `UD_PARCIAL` (fallback), `DIAS_ALERTA`, `EMAIL_DEST`, `ATIVO` |
 | `ZSEPEX_T_PAR_LT` | Tabela | `LGNUM`, `LGTYP` (chave), `PRIORIDADE`, `ATIVO`: tipos de depósito de origem da regularização |
 | `ZSEPEX_T_CAB` | Tabela | `LGNUM`, `VBELN` (chave; remessa de saída do DPFE: transferência ou ZRTA), `ORIGEM` (`I` intercentros, `A` armazém geral), `ORIGEM_ID` (número `ZWM_ICENTROS` ou GUID `ZAGT_LOG`), `TKNUM`, `REFNR`, `STATUS`, `DT_VIRT`, `DT_PGI`, `DT_CONCL`, `ERNAM/ERDAT/ERZET`, `AENAM/AEDAT/AEZET` |
 | `ZSEPEX_T_ITM` | Tabela | `LGNUM`, `VBELN`, `POSNR` (chave; item de lote da remessa), `MATNR`, `CHARG`, `MENGE`, `MEINS`, `TANUM_VIRT`, `TAPOS_VIRT`, `QTD_REGUL`, `STATUS` |
@@ -80,7 +80,7 @@ Total WM = total MM em todas as linhas. LX23 fecha em zero.
 | `ZSEPEX_CRIA_OT_REGUL` (FM) | Para os itens pendentes de um processo: escolhe UDs com as regras de `ZF_PREENCHE_SIMULACAO` e `ZF_FILTRA_LQUA_DISPONIVEL` (mesmo lote do item, `MLGN-LHMG1`, prioridade `999/SEPARACAO`, sem OT aberta, posição não bloqueada), cria OT por remessa com `L_TO_CREATE_MULTIPLE` (itens por UD, destino `9EX/EXPRESS`, `BWLVS_REG`), grava `ZSEPEX_T_OT`, status 2. Saldo não coberto fica pendente com motivo. |
 | `ZSEPEX_SALDO_PENDENTE` (FM) | Retorna, por material (e lote), a quantidade Express ainda sem OT de regularização. Usada pelo monitor na validação de saldo. |
 | `ZCL_SEPEX_CONTROLE` | Persistência, transições de status, bloqueio `EZSEPEX_CAB` |
-| `ZCL_SEPEX_UD` | Seleção de UDs (lógica extraída da simulação do monitor, parametrizada por lote) |
+| `ZCL_SEPEX_UD` | Seleção de UDs/quants por lote: paletes inteiros das posições (`LHMG1`), fração de palete do avulso (`LGTYP_AVS`), fallback parcial (`UD_PARCIAL`); informa a fração não coberta para o reabastecimento |
 | `ZCL_SEPEX_WM` | Wrappers de `L_TO_CREATE_DN`, `L_TO_CONFIRM`, `L_TO_CREATE_MULTIPLE`, leitura `LTAP/LQUA` |
 | `ZCL_SEPEX_SINC` | Sincronização de itens, OTs e remessa; fechamento do processo |
 | `ZCL_SEPEX_LOG` | Application log objeto `ZSEPEX` |
@@ -159,6 +159,7 @@ no cockpit. `DETERMINAR_LOTES_REMESSA` passa a descontar `ZSEPEX_SALDO_PENDENTE`
 | Quem usa | Encarregado ou gestão, só no último dia do fechamento. Autorização `ZSEPEX_EXP` 01. |
 | Lote | O lote da remessa de transferência é o determinado pela `ZSD_ICENTRO_ESTOQ`. A OT de regularização nomeia UDs desse lote. Fase 1: troca de UD só dentro do mesmo lote. Fase 2: troca de lote com 309 nos dois centros, habilitada por `AJUSTE_LOTE` após o fiscal aprovar. |
 | Prazo | Até 7 dias (`DIAS_ALERTA`). Acima disso só sinaliza; a separação continua. |
+| Avulso | Fração de palete sai do avulso (posição fixa `AVS`), nunca de UD de posição (salvo `UD_PARCIAL`). Avulso sem saldo: NT/OT 919 de reabastecimento criada automaticamente (`REAB_AUTO`, função `ZFWM_REABASTECIMENTO` do monitor), item pendente até a confirmação; o job ZSEPEX04 (ou a ZSEPEX02) cria a OT de regularização na sequência. |
 | UD não encontrada | Operador confirma com diferença na LM45 (vai para 999). Sincronização marca saldo pendente; Z02 recria OT para o restante em outra UD. Diferença física tratada pelo inventário WM padrão. |
 | Carga cancelada após PGI | Fora do Express (VL09, NF, entrada). Sincronização marca status 9 e as OTs de regularização abertas devem ser estornadas por `LT15`; o quant negativo em `9EX` fica para análise. |
 | Conferência de expedição | Obrigatória, no carregamento, pelo `ZWMRF0002` adaptado contra os volumes de `ZSEPEX_T_VOL`. A `ZWMT011` só libera o faturamento no dia 31. |

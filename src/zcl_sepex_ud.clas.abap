@@ -1,9 +1,16 @@
-"! Separação Express - seleção de UDs para a OT de regularização.
-"! Regras herdadas da simulação da carga fechada (ZWMR0010,
-"! ZF_PREENCHE_SIMULACAO / ZF_FILTRA_LQUA_DISPONIVEL): quants dos tipos
-"! de depósito parametrizados (ZSEPEX_T_PAR_LT), do lote do item, sem
-"! bloqueio, sem OT aberta na UD; UDs inteiras primeiro (mais antigas),
-"! depois uma UD parcial para o resto.
+"! Separação Express - seleção de UDs/quants para a OT de regularização.
+"! Regras do armazém (mesmas da separação normal e da paletização do
+"! monitor ZWMR0010):
+"!  1. Paletes inteiros saem das posições (tipos da ZSEPEX_T_PAR_LT):
+"!     só UD com saldo >= paletização (MLGN-LHMG1), sem OT aberta na UD
+"!     e sem bloqueio da posição; mais antigas primeiro.
+"!  2. O resto (fração de palete) sai do avulso (tipo de depósito
+"!     ZSEPEX_T_PAR-LGTYP_AVS, posição fixa da MLGT), de qualquer quant
+"!     do lote.
+"!  3. Se o avulso não cobre: com UD_PARCIAL = X tira o resto de uma UD
+"!     de posição (parcial); senão fica pendente e EV_FALTA_AVULSO
+"!     informa a quantidade para o reabastecimento (NT 919).
+"! Material sem paletização: qualquer quant, parcial permitido.
 CLASS zcl_sepex_ud DEFINITION
   PUBLIC
   FINAL
@@ -12,8 +19,11 @@ CLASS zcl_sepex_ud DEFINITION
   PUBLIC SECTION.
     TYPES ty_t_lenum TYPE STANDARD TABLE OF lenum WITH DEFAULT KEY.
 
-    "! Seleciona UDs para material/centro/lote até cobrir iv_menge (na
-    "! unidade iv_meins). ev_falta recebe o que não foi coberto.
+    "! Seleciona UDs/quants para material/centro/lote até cobrir iv_menge
+    "! (na unidade iv_meins). ev_falta recebe o que não foi coberto;
+    "! ev_falta_avulso, a parte de ev_falta que é fração de palete e
+    "! deveria vir do avulso (candidata a reabastecimento); ev_lhmg1, a
+    "! paletização na unidade do item (0 = sem paletização).
     CLASS-METHODS selecionar
       IMPORTING
         !iv_lgnum  TYPE lgnum
@@ -24,9 +34,13 @@ CLASS zcl_sepex_ud DEFINITION
         !iv_meins  TYPE meins
         !it_lgtyp  TYPE zsepex_t_par_lt_tt
         !it_excluir_lenum TYPE ty_t_lenum OPTIONAL
+        !iv_lgtyp_avs  TYPE lgtyp OPTIONAL
+        !iv_ud_parcial TYPE xfeld OPTIONAL
       EXPORTING
         !et_ud     TYPE zsepex_t_ud_tt
         !ev_falta  TYPE zsepex_qtd
+        !ev_falta_avulso TYPE zsepex_qtd
+        !ev_lhmg1  TYPE zsepex_qtd
       RAISING
         zcx_sepex.
 
@@ -56,6 +70,7 @@ CLASS zcl_sepex_ud DEFINITION
              meins TYPE meins,
              edatu TYPE lqua-edatu,
              prio  TYPE numc2,
+             avulso TYPE xfeld,
            END OF ty_lqua.
     TYPES ty_t_lqua TYPE STANDARD TABLE OF ty_lqua WITH DEFAULT KEY.
 
@@ -164,7 +179,7 @@ CLASS zcl_sepex_ud IMPLEMENTATION.
 
   METHOD selecionar.
     DATA: lt_lqua   TYPE ty_t_lqua,
-          ls_lqua   TYPE ty_lqua,
+          lt_avs    TYPE ty_t_lqua,
           ls_lgtyp  TYPE zsepex_t_par_lt,
           lr_lgtyp  TYPE RANGE OF lgtyp,
           ls_rlgtyp LIKE LINE OF lr_lgtyp,
@@ -175,7 +190,7 @@ CLASS zcl_sepex_ud IMPLEMENTATION.
           lv_meins_wm TYPE meins.
     FIELD-SYMBOLS <ls_lqua> TYPE ty_lqua.
 
-    CLEAR: et_ud, ev_falta.
+    CLEAR: et_ud, ev_falta, ev_falta_avulso, ev_lhmg1.
     lv_resto = iv_menge.
     IF lv_resto <= 0.
       RETURN.
@@ -189,6 +204,7 @@ CLASS zcl_sepex_ud IMPLEMENTATION.
       zcx_sepex=>raise_msg( iv_msgno = '026' iv_msgv1 = iv_lgnum ).
     ENDIF.
 
+    " Quants das posições (tipos de depósito com UD)
     SELECT lgnum lqnum matnr werks lgort charg lgtyp lgpla lenum verme meins edatu
       FROM lqua INTO CORRESPONDING FIELDS OF TABLE lt_lqua
       WHERE lgnum = iv_lgnum
@@ -199,14 +215,35 @@ CLASS zcl_sepex_ud IMPLEMENTATION.
         AND bestq = space
         AND sobkz = space
         AND verme > 0.
-    IF sy-subrc <> 0.
+
+    " Quants do avulso (posição fixa, sem UD). LQUA-VERME já desconta o
+    " que está em OT aberta a partir da posição.
+    IF iv_lgtyp_avs IS NOT INITIAL.
+      SELECT lgnum lqnum matnr werks lgort charg lgtyp lgpla lenum verme meins edatu
+        FROM lqua INTO CORRESPONDING FIELDS OF TABLE lt_avs
+        WHERE lgnum = iv_lgnum
+          AND matnr = iv_matnr
+          AND werks = iv_werks
+          AND charg = iv_charg
+          AND lgtyp = iv_lgtyp_avs
+          AND bestq = space
+          AND sobkz = space
+          AND verme > 0.
+      LOOP AT lt_avs ASSIGNING <ls_lqua>.
+        <ls_lqua>-avulso = 'X'.
+        <ls_lqua>-prio   = '99'.
+      ENDLOOP.
+      APPEND LINES OF lt_avs TO lt_lqua.
+    ENDIF.
+
+    IF lt_lqua IS INITIAL.
       ev_falta = lv_resto.
       RETURN.
     ENDIF.
 
     " UDs já usadas em outra OT desta execução (ainda não gravadas)
     IF it_excluir_lenum IS NOT INITIAL.
-      LOOP AT lt_lqua ASSIGNING <ls_lqua>.
+      LOOP AT lt_lqua ASSIGNING <ls_lqua> WHERE lenum <> space.
         READ TABLE it_excluir_lenum TRANSPORTING NO FIELDS
           WITH KEY table_line = <ls_lqua>-lenum.
         IF sy-subrc = 0.
@@ -231,23 +268,26 @@ CLASS zcl_sepex_ud IMPLEMENTATION.
     ELSE.
       CLEAR lv_lhmg1.
     ENDIF.
+    ev_lhmg1 = lv_lhmg1.
 
     " Quantidades na unidade do item; prioridade do tipo de depósito;
-    " mais antigas primeiro
+    " mais antigas primeiro (avulso por último, prio 99)
     LOOP AT lt_lqua ASSIGNING <ls_lqua>.
       <ls_lqua>-verme = converter( iv_matnr = iv_matnr iv_de = <ls_lqua>-meins
                                    iv_para = iv_meins iv_menge = <ls_lqua>-verme ).
       <ls_lqua>-meins = iv_meins.
-      READ TABLE it_lgtyp INTO ls_lgtyp WITH KEY lgtyp = <ls_lqua>-lgtyp.
-      IF sy-subrc = 0.
-        <ls_lqua>-prio = ls_lgtyp-prioridade.
+      IF <ls_lqua>-avulso = space.
+        READ TABLE it_lgtyp INTO ls_lgtyp WITH KEY lgtyp = <ls_lqua>-lgtyp.
+        IF sy-subrc = 0.
+          <ls_lqua>-prio = ls_lgtyp-prioridade.
+        ENDIF.
       ENDIF.
     ENDLOOP.
     SORT lt_lqua BY prio edatu lqnum.
 
-    " 1ª passada: UDs inteiras (saldo >= palete cheio, quando conhecido)
-    " que cabem inteiras no resto
-    LOOP AT lt_lqua ASSIGNING <ls_lqua>.
+    " 1ª passada: paletes inteiros das posições (saldo >= paletização,
+    " quando conhecida) que cabem inteiros no resto
+    LOOP AT lt_lqua ASSIGNING <ls_lqua> WHERE avulso = space.
       IF lv_resto <= 0.
         EXIT.
       ENDIF.
@@ -267,8 +307,8 @@ CLASS zcl_sepex_ud IMPLEMENTATION.
       CLEAR <ls_lqua>-verme.
     ENDLOOP.
 
-    " 2ª passada: resto a partir de qualquer UD com saldo (parcial)
-    LOOP AT lt_lqua ASSIGNING <ls_lqua> WHERE verme > 0.
+    " 2ª passada: resto a partir do avulso (qualquer quant do lote)
+    LOOP AT lt_lqua ASSIGNING <ls_lqua> WHERE avulso = 'X' AND verme > 0.
       IF lv_resto <= 0.
         EXIT.
       ENDIF.
@@ -281,16 +321,42 @@ CLASS zcl_sepex_ud IMPLEMENTATION.
       MOVE-CORRESPONDING <ls_lqua> TO ls_ud.
       ls_ud-menge = lv_qtd.
       ls_ud-meins = iv_meins.
-      IF lv_qtd = <ls_lqua>-verme.
-        ls_ud-inteira = 'X'.
-      ENDIF.
       APPEND ls_ud TO et_ud.
       lv_resto = lv_resto - lv_qtd.
       <ls_lqua>-verme = <ls_lqua>-verme - lv_qtd.
     ENDLOOP.
 
+    " 3ª passada: resto de uma UD de posição (parcial). Só quando o
+    " material não tem paletização ou o parâmetro UD_PARCIAL permite.
+    IF lv_resto > 0 AND ( lv_lhmg1 = 0 OR iv_ud_parcial = 'X' ).
+      LOOP AT lt_lqua ASSIGNING <ls_lqua> WHERE avulso = space AND verme > 0.
+        IF lv_resto <= 0.
+          EXIT.
+        ENDIF.
+        IF <ls_lqua>-verme >= lv_resto.
+          lv_qtd = lv_resto.
+        ELSE.
+          lv_qtd = <ls_lqua>-verme.
+        ENDIF.
+        CLEAR ls_ud.
+        MOVE-CORRESPONDING <ls_lqua> TO ls_ud.
+        ls_ud-menge = lv_qtd.
+        ls_ud-meins = iv_meins.
+        IF lv_qtd = <ls_lqua>-verme.
+          ls_ud-inteira = 'X'.
+        ENDIF.
+        APPEND ls_ud TO et_ud.
+        lv_resto = lv_resto - lv_qtd.
+        <ls_lqua>-verme = <ls_lqua>-verme - lv_qtd.
+      ENDLOOP.
+    ENDIF.
+
     IF lv_resto > 0.
       ev_falta = lv_resto.
+      " Fração de palete não coberta: deveria sair do avulso
+      IF lv_lhmg1 > 0.
+        ev_falta_avulso = lv_resto MOD lv_lhmg1.
+      ENDIF.
     ENDIF.
   ENDMETHOD.
 

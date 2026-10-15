@@ -18,8 +18,13 @@ FUNCTION zsepex_cria_ot_regul.
 * Para cada item da remessa com saldo pendente (MENGE - QTD_REGUL - em
 * OT aberta), seleciona UDs do MESMO lote (regra 1: o lote escolhido na
 * separação virtual é obrigatório) e cria UMA OT de regularização por
-* remessa, com um item por UD, destino = posição virtual. A OT fica
-* aberta (reserva as UDs) até a confirmação no RF Express.
+* remessa, com um item por UD/quant, destino = posição virtual. A OT
+* fica aberta (reserva as UDs) até a confirmação no RF.
+* Regra do armazém (ZCL_SEPEX_UD): paletes inteiros das posições, fração
+* de palete do avulso (LGTYP_AVS). Se o avulso não cobre e REAB_AUTO = X,
+* cria o reabastecimento NT/OT 919 (ZFWM_REABASTECIMENTO) e deixa o item
+* pendente; a OT de regularização sai na próxima execução (ZSEPEX02 ou
+* job ZSEPEX04), depois da confirmação do reabastecimento.
 *----------------------------------------------------------------------
   DATA: lo_log     TYPE REF TO zcl_sepex_log,
         lx_erro    TYPE REF TO zcx_sepex,
@@ -38,6 +43,13 @@ FUNCTION zsepex_cria_ot_regul.
         ls_ltap    TYPE ltap,
         lv_pend    TYPE zsepex_qtd,
         lv_falta   TYPE zsepex_qtd,
+        lv_falta_avs TYPE zsepex_qtd,
+        lv_falta_pal TYPE zsepex_qtd,
+        lv_lhmg1   TYPE zsepex_qtd,
+        lv_tbnum   TYPE tbnum,
+        lv_tanum_r TYPE tanum,
+        lv_msg     TYPE bapi_msg,
+        lx_reab    TYPE REF TO zcx_sepex,
         lv_tanum   TYPE tanum,
         lv_bloq    TYPE xfeld,
         lv_idx     TYPE i.
@@ -73,7 +85,7 @@ FUNCTION zsepex_cria_ot_regul.
         IF lv_pend <= 0.
           CONTINUE.
         ENDIF.
-        CLEAR: lt_ud, lv_falta.
+        CLEAR: lt_ud, lv_falta, lv_falta_avs, lv_lhmg1.
         zcl_sepex_ud=>selecionar( EXPORTING iv_lgnum = i_lgnum
                                             iv_matnr = ls_itm-matnr
                                             iv_werks = ls_itm-werks
@@ -82,8 +94,12 @@ FUNCTION zsepex_cria_ot_regul.
                                             iv_meins = ls_itm-meins
                                             it_lgtyp = lt_lgtyp
                                             it_excluir_lenum = lt_lenum
+                                            iv_lgtyp_avs  = ls_par-lgtyp_avs
+                                            iv_ud_parcial = ls_par-ud_parcial
                                   IMPORTING et_ud    = lt_ud
-                                            ev_falta = lv_falta ).
+                                            ev_falta = lv_falta
+                                            ev_falta_avulso = lv_falta_avs
+                                            ev_lhmg1 = lv_lhmg1 ).
         LOOP AT lt_ud INTO ls_ud.
           " Vincula a UD ao item da remessa (campo LGORT guarda o do item)
           ls_ud-lgort = ls_itm-lgort.
@@ -107,8 +123,43 @@ FUNCTION zsepex_cria_ot_regul.
         ENDLOOP.
         IF lv_falta > 0.
           e_itens_pend = e_itens_pend + 1.
-          lo_log->add_msg( iv_msgty = 'W' iv_msgno = '027' iv_msgv1 = ls_itm-matnr
-                           iv_msgv2 = ls_itm-charg iv_msgv3 = lv_falta iv_msgv4 = ls_itm-meins ).
+          " Paletes inteiros que faltam nas posições
+          IF lv_lhmg1 > 0 AND lv_falta >= lv_lhmg1.
+            lv_falta_pal = lv_falta - lv_falta_avs.
+            lo_log->add_msg( iv_msgty = 'W' iv_msgno = '035' iv_msgv1 = ls_itm-matnr
+                             iv_msgv2 = ls_itm-charg iv_msgv3 = lv_falta_pal
+                             iv_msgv4 = ls_itm-meins ).
+          ELSEIF lv_falta_avs = 0.
+            lo_log->add_msg( iv_msgty = 'W' iv_msgno = '027' iv_msgv1 = ls_itm-matnr
+                             iv_msgv2 = ls_itm-charg iv_msgv3 = lv_falta iv_msgv4 = ls_itm-meins ).
+          ENDIF.
+          " Fração de palete sem saldo no avulso: reabastecimento (NT 919)
+          IF lv_falta_avs > 0 AND ls_par-lgtyp_avs IS NOT INITIAL.
+            zcl_sepex_wm=>reabastecimento_pendente(
+              EXPORTING iv_lgnum = i_lgnum iv_matnr = ls_itm-matnr
+                        iv_charg = ls_itm-charg iv_lgtyp_avs = ls_par-lgtyp_avs
+              IMPORTING ev_tbnum = lv_tbnum ev_tanum = lv_tanum_r ).
+            IF lv_tbnum IS NOT INITIAL OR lv_tanum_r IS NOT INITIAL.
+              lo_log->add_msg( iv_msgty = 'W' iv_msgno = '033' iv_msgv1 = ls_itm-matnr
+                               iv_msgv2 = ls_itm-charg iv_msgv3 = lv_tbnum iv_msgv4 = lv_tanum_r ).
+            ELSEIF ls_par-reab_auto = 'X' AND i_teste = space.
+              TRY.
+                  lv_msg = zcl_sepex_wm=>reabastecer_avulso( iv_lgnum = i_lgnum
+                                                             iv_matnr = ls_itm-matnr
+                                                             iv_charg = ls_itm-charg
+                                                             iv_werks = ls_itm-werks
+                                                             iv_lgort = ls_itm-lgort ).
+                  lo_log->add_msg( iv_msgty = 'I' iv_msgno = '032' iv_msgv1 = ls_itm-matnr
+                                   iv_msgv2 = ls_itm-charg iv_msgv3 = lv_msg ).
+                CATCH zcx_sepex INTO lx_reab.
+                  lo_log->add_excecao( lx_reab ).
+              ENDTRY.
+            ELSE.
+              lo_log->add_msg( iv_msgty = 'W' iv_msgno = '031' iv_msgv1 = ls_itm-matnr
+                               iv_msgv2 = ls_itm-charg iv_msgv3 = lv_falta_avs
+                               iv_msgv4 = ls_itm-meins ).
+            ENDIF.
+          ENDIF.
         ELSE.
           e_itens_ok = e_itens_ok + 1.
         ENDIF.
