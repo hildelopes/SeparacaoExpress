@@ -77,3 +77,17 @@ a UD dentro do mesmo lote.
 
 Observação: como a OT de regularização nomeia a UD e a LM45 exige a leitura dessa UD, a
 troca de lote só acontece por decisão do encarregado na Z02, nunca por engano no RF.
+
+## Roteiro do especialista do processo (15/10/2026) x implementação
+
+Passo a passo enviado pelo usuário-chave ("Separação Física e Ajuste de Saldo Negativo")
+e como cada ponto está atendido na fase 1 (commit `fbce579`).
+
+| # | Passo do roteiro | Situação |
+|---|---|---|
+| 1 | Executar a ZSEPEX02 para gerar as OTs | Atende. Também automático: na separação virtual (`OT_IMEDIATA`) e no job ZSEPEX04 (`P_CRIAOT`). |
+| 2 | Drives (DIA, DTA, XDC) só recebem OTs de paletes com quantidade fechada, conforme cadastro | Atende. Tipos da `ZSEPEX_T_PAR_LT`; palete fechado = `MLGN-LHMG1` (paletização da visão WM do material, a mesma do botão Palletização). **Pendente:** o roteiro não cita DII, que está cadastrado com prioridade 4. Confirmar se fica. |
+| 3 | Quantidades fracionadas vão para o avulso (AVS) | Atende. `ZSEPEX_T_PAR-LGTYP_AVS = AVS`. |
+| 4 | Sem material/lote no AVS, solicitar OT de reabastecimento automaticamente | Atende. `REAB_AUTO = X` cria NT/OT 919 pela `ZFWM_REABASTECIMENTO` (um palete, mesmo lote). Não duplica se já houver NT/OT 919 aberta. |
+| 5 | Após confirmar a OT 919 no coletor, gerar automaticamente a OT de separação | Atende com atraso: o job ZSEPEX04 (`P_CRIAOT`) cria a OT na próxima execução. **Decisão:** intervalo do job (30 min padrão; pode ser 5 min) ou gatilho na confirmação da OT (user exit de confirmação WM, fase 1b). |
+| 6 | Após as separações e confirmações, saldo WM alinhado ao MM automaticamente | Atende por construção: cada OT de regularização confirmada move estoque das posições/AVS para `9EX/EXPRESS`, zerando o quant negativo criado na separação virtual. Não há passo de ajuste. Diferença na confirmação (UD não encontrada) fica em 999 e a ZSEPEX02 recria a OT para o saldo; sobra física real é inventário WM padrão (LI21). |
