@@ -330,7 +330,6 @@ CLASS zcl_sepex_wm IMPLEMENTATION.
       EXPORTING
         i_lgnum               = iv_lgnum
         i_bwlvs               = is_par-bwlvs_reg
-        i_squit               = space
         i_commit_work         = 'X'
         i_bname               = sy-uname
       IMPORTING
