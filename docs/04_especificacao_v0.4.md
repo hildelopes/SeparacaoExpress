@@ -62,11 +62,11 @@ Total WM = total MM em todas as linhas. LX23 fecha em zero.
 
 | Objeto | Tipo | Campos principais |
 |---|---|---|
-| `ZSEPEX_T_PAR` | Tabela | `LGNUM` (chave), `LGTYP_VIRT`, `LGBER_VIRT`, `LGPLA_VIRT`, `BWLVS_REG`, `OT_IMEDIATA`, `LGTYP_AVS` (tipo de depósito do avulso), `REAB_AUTO` (reabastecimento automático NT 919), `UD_PARCIAL` (fallback), `FILA_REG_PREF` (prefixo da fila RF por portão da OT de regularização), `DIAS_ALERTA`, `EMAIL_DEST`, `ATIVO` |
+| `ZSEPEX_T_PAR` | Tabela | `LGNUM` (chave), `LGTYP_VIRT`, `LGBER_VIRT`, `LGPLA_VIRT`, `BWLVS_REG`, `OT_IMEDIATA`, `LGTYP_AVS` (tipo de depósito do avulso), `REAB_AUTO` (reabastecimento automático NT 919), `UD_PARCIAL` (fallback), `FILA_PAL_PREF` / `FILA_AVS_PREF` (prefixos das filas RF por portão: OT de paletes inteiros e OT de avulso), `DIAS_ALERTA`, `EMAIL_DEST`, `ATIVO` |
 | `ZSEPEX_T_PAR_LT` | Tabela | `LGNUM`, `LGTYP` (chave), `PRIORIDADE`, `ATIVO`: tipos de depósito de origem da regularização |
 | `ZSEPEX_T_CAB` | Tabela | `LGNUM`, `VBELN` (chave; remessa de saída do DPFE: transferência ou ZRTA), `ORIGEM` (`I` intercentros, `A` armazém geral), `ORIGEM_ID` (número `ZWM_ICENTROS` ou GUID `ZAGT_LOG`), `TKNUM`, `REFNR`, `LGTOR`/`LGBZO` (portão/zona de expedição: padrão da remessa, redefinível no ZSEPEX02), `STATUS`, `DT_VIRT`, `DT_PGI`, `DT_CONCL`, `ERNAM/ERDAT/ERZET`, `AENAM/AEDAT/AEZET` |
 | `ZSEPEX_T_ITM` | Tabela | `LGNUM`, `VBELN`, `POSNR` (chave; item de lote da remessa), `MATNR`, `CHARG`, `MENGE`, `MEINS`, `TANUM_VIRT`, `TAPOS_VIRT`, `QTD_REGUL`, `STATUS` |
-| `ZSEPEX_T_OT` | Tabela | `LGNUM`, `TANUM`, `TAPOS` (chave), `VBELN`, `POSNR`, `MATNR`, `CHARG`, `VLENR`, `VSOLM`, `NISTM`, `NDIFA`, `PQUIT`, `AEDAT` |
+| `ZSEPEX_T_OT` | Tabela | `LGNUM`, `TANUM`, `TAPOS` (chave), `VBELN`, `POSNR`, `MATNR`, `CHARG`, `VLENR`, `INTEIRA` (palete inteiro), `VSOLM`, `NISTM`, `NDIFA`, `PQUIT`, `AEDAT` |
 | `ZSEPEX_T_VOL` | Tabela | `LGNUM`, `VOLUME` (chave; UD ou etiqueta), `TKNUM`, `VBELN`, `POSNR`, `MATNR`, `CHARG`, `MENGE`, `MEINS`, `TANUM`, `TAPOS`, `TIPO` (`U` UD inteira, `E` etiqueta parcial), `ERNAM/ERDAT/ERZET` |
 | `ZSEPEX_D_STATUS` | Domínio | `0` Registrado, `1` Separação virtual, `2` OT regularização criada, `3` PGI efetuado, `4` Em regularização, `5` Concluído, `9` Cancelado |
 | `ZSEPEX_D_ORIGEM`, `ZSEPEX_D_TIPO_VOL`, `ZSEPEX_D_DIAS` | Domínios | Origem I/A, tipo de volume U/E, dias |
@@ -77,7 +77,7 @@ Total WM = total MM em todas as linhas. LX23 fecha em zero.
 | Objeto | Responsabilidade |
 |---|---|
 | `ZSEPEX_SEPARA_VIRTUAL` (FM, grupo `ZSEPEX_FG`) | Interface por remessa: `I_LGNUM`, `I_VBELN`, `I_REFNR` (opcional), `I_ORIGEM`, `I_ORIGEM_ID`, `I_TKNUM`. Lê itens de lote da LIPS, monta `IT_DELIT` com origem virtual, `L_TO_CREATE_DN` + `L_TO_CONFIRM` (padrão dos passos 8 a 10 de `Z_WM_CONFIRMA_ICENTRO`), grava `ZSEPEX_T_CAB/ITM` status 1. Se `OT_IMEDIATA`, chama `ZSEPEX_CRIA_OT_REGUL`. Chamada pelo engine `ZWM_ICENTROS` (origem `I`, uma vez por remessa do grupo) e pela classe `ZCL_ARMAZEM_GERAL` (origem `A`). |
-| `ZSEPEX_CRIA_OT_REGUL` (FM) | Para os itens pendentes de um processo: escolhe UDs com as regras de `ZF_PREENCHE_SIMULACAO` e `ZF_FILTRA_LQUA_DISPONIVEL` (mesmo lote do item, `MLGN-LHMG1`, prioridade `999/SEPARACAO`, sem OT aberta, posição não bloqueada), cria OT por remessa com `L_TO_CREATE_MULTIPLE` (itens por UD, destino `9EX/EXPRESS`, `BWLVS_REG`), grava `ZSEPEX_T_OT`, status 2. Saldo não coberto fica pendente com motivo. |
+| `ZSEPEX_CRIA_OT_REGUL` (FM) | Para os itens pendentes de um processo: escolhe UDs com as regras de `ZF_PREENCHE_SIMULACAO` e `ZF_FILTRA_LQUA_DISPONIVEL` (mesmo lote do item, `MLGN-LHMG1`, prioridade `999/SEPARACAO`, sem OT aberta, posição não bloqueada), cria até duas OTs por remessa com `L_TO_CREATE_MULTIPLE` (itens por UD, destino `9EX/EXPRESS`, `BWLVS_REG`): paletes inteiros (`E_TANUM`, fila `PC_D_portão`) e frações/avulso (`E_TANUM_AVS`, fila `AV_D_portão`); grava `ZSEPEX_T_OT`, status 2. Saldo não coberto fica pendente com motivo. |
 | `ZSEPEX_SALDO_PENDENTE` (FM) | Retorna, por material (e lote), a quantidade Express ainda sem OT de regularização. Usada pelo monitor na validação de saldo. |
 | `ZCL_SEPEX_CONTROLE` | Persistência, transições de status, portão/zona do cabeçalho (`gravar_portao_zona`), bloqueio `EZSEPEX_CAB` |
 | `ZCL_SEPEX_UD` | Seleção de UDs/quants por lote: paletes inteiros das posições (`LHMG1`), fração de palete do avulso (`LGTYP_AVS`), fallback parcial (`UD_PARCIAL`); informa a fração não coberta para o reabastecimento |
@@ -163,7 +163,7 @@ no cockpit. `DETERMINAR_LOTES_REMESSA` passa a descontar `ZSEPEX_SALDO_PENDENTE`
 | UD não encontrada | Operador confirma com diferença na LM45 (vai para 999). Sincronização marca saldo pendente; Z02 recria OT para o restante em outra UD. Diferença física tratada pelo inventário WM padrão. |
 | Carga cancelada após PGI | Fora do Express (VL09, NF, entrada). Sincronização marca status 9 e as OTs de regularização abertas devem ser estornadas por `LT15`; o quant negativo em `9EX` fica para análise. |
 | Conferência de expedição | Obrigatória, no carregamento, pelo `ZWMRF0002` adaptado contra os volumes de `ZSEPEX_T_VOL`. A `ZWMT011` só libera o faturamento no dia 31. |
-| Portão/zona da regularização | A OT de regularização recebe no cabeçalho (`LTAK-LGTOR/LGBZO`) o portão/zona do cabeçalho Express, cujo padrão é o da remessa de transferência (tela 0101 do monitor), e vai para a fila RF `<FILA_REG_PREF>_D_<portão>` (em branco: fila intocada). O destino da OT continua `9EX/EXPRESS` (necessário para zerar o saldo); a LM05 mostra essa posição, e o portão aparece na LT21/LT23, na fila RF e no ZSEPEX02. Redefinição pelo ZSEPEX02 (botão Portão/Zona): remessa só sem saída (msg 039), cabeçalho e OTs abertas; falha só na fila mantém portão/zona gravados (msg 041). Exibir portão/zona no coletor é do RF Express (fase 1b). |
+| Portão/zona da regularização | A OT de regularização recebe no cabeçalho (`LTAK-LGTOR/LGBZO`) o portão/zona do cabeçalho Express, cujo padrão é o da remessa de transferência (tela 0101 do monitor), e vai para a fila RF do portão por tipo: OT de paletes inteiros `<FILA_PAL_PREF>_D_<portão>` (PC_D_001), OT de avulso `<FILA_AVS_PREF>_D_<portão>` (AV_D_001); prefixo em branco deixa a fila intocada. O destino da OT continua `9EX/EXPRESS` (necessário para zerar o saldo); a LM05 mostra essa posição, e o portão aparece na LT21/LT23, na fila RF e no ZSEPEX02. Redefinição pelo ZSEPEX02 (botão Portão/Zona): remessa só sem saída (msg 039), cabeçalho e OTs abertas; falha só na fila mantém portão/zona gravados (msg 041). Exibir portão/zona no coletor é do RF Express (fase 1b). |
 
 ## 7. Plano de testes (QAS)
 
@@ -183,7 +183,7 @@ no cockpit. `DETERMINAR_LOTES_REMESSA` passa a descontar `ZSEPEX_SALDO_PENDENTE`
 | T10 | Estorno antes da OT virtual | `ZWM_ESTORNO_ICENTROS` funciona; Express status 9 |
 | T11 | Volume: carga com 30 remessas e 40 materiais | Tempo do engine dentro da janela, sem deadlock |
 | T12 | Autorizações | Perfis separados |
-| T13 | Portão/zona na OT de regularização | `LTAK-LGTOR/LGBZO` = LIKP; `LTAK-QUEUE = AV_D_<portão>`; ZSEPEX02 Portão/Zona altera remessa (sem PGI), cabeçalho e OTs abertas; remessa com PGI → só OTs (msg 039); portão/zona inválidos → msgs 037/038; fila inexistente → 041 com portão gravado |
+| T13 | Portão/zona na OT de regularização | `LTAK-LGTOR/LGBZO` = LIKP; duas OTs (paletes `PC_D_<portão>`, avulso `AV_D_<portão>`); ZSEPEX02 Portão/Zona altera remessa (sem PGI), cabeçalho e OTs abertas; remessa com PGI → só OTs (msg 039); portão/zona inválidos → msgs 037/038; fila inexistente → 041 com portão gravado |
 
 
 ## 8. Fases
@@ -200,7 +200,7 @@ no cockpit. `DETERMINAR_LOTES_REMESSA` passa a descontar `ZSEPEX_SALDO_PENDENTE`
 Fase 1 entregue no repositório (`src/`, 60 objetos, abaplint sem erros em v740sp08) e
 trechos das alterações nos objetos compartilhados em `alteracoes/`. Pendentes: fase 1b
 (RF Express e `ZWMRF0002`), ajuste de lote (fase 2, regra 1 adotada: sem troca de lote).
-- 11/2026: portão/zona na OT de regularização (`ZSEPEX_T_CAB-LGTOR/LGBZO`, `ZSEPEX_T_PAR-FILA_REG_PREF`, mensagens 036–045, botão Portão/Zona no ZSEPEX02). Regerar a SM30 da `ZSEPEX_T_PAR` na SE54 e cadastrar a fila `AV_D_<portão>` na LRF1.
+- 11/2026: portão/zona na OT de regularização (`ZSEPEX_T_CAB-LGTOR/LGBZO`, `ZSEPEX_T_PAR-FILA_PAL_PREF/FILA_AVS_PREF`, `ZSEPEX_T_OT-INTEIRA`, OT de regularização dividida em paletes x avulso, mensagens 036–046, botão Portão/Zona no ZSEPEX02). Regerar a SM30 da `ZSEPEX_T_PAR` na SE54 e cadastrar as filas `PC_D_<portão>` e `AV_D_<portão>` na LRF1.
 
 
 ## 10. Estrutura do repositório

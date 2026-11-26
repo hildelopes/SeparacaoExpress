@@ -10,7 +10,8 @@
 *&  - Sincronizar: lê LTAP/VBUK e atualiza status (igual ao job ZSEPEX04)
 *&  - Botão Portão/Zona (ALV): define portão e zona de expedição para as
 *&    remessas selecionadas: cabeçalho Express, remessa (só sem saída) e
-*&    OTs de regularização abertas (LTAK-LGTOR/LGBZO + fila RF do portão)
+*&    OTs de regularização abertas (LTAK-LGTOR/LGBZO + fila RF do portão:
+*&    paletes PC_D_portão, avulso AV_D_portão)
 *& Modo teste: seleciona as UDs e mostra, sem criar OT.
 *&---------------------------------------------------------------------*
 REPORT zsepex_r_regularizar MESSAGE-ID zsepex.
@@ -530,6 +531,7 @@ FORM f_aplicar_portao_remessa USING    pv_vbeln TYPE vbeln_vl
         lv_lvstk TYPE lvstk,
         lv_wbstk TYPE wbstk,
         lv_qtd   TYPE i,
+        lv_pref  TYPE zsepex_fila_reg_pref,
         lv_bloq  TYPE xfeld,
         lx_erro  TYPE REF TO zcx_sepex,
         ls_msg   TYPE ty_saida.
@@ -567,18 +569,24 @@ FORM f_aplicar_portao_remessa USING    pv_vbeln TYPE vbeln_vl
         APPEND ls_msg TO ct_msg.
       ENDIF.
 
-      " c) OTs de regularização abertas
+      " c) OTs de regularização abertas: fila por tipo (OT com palete
+      "    inteiro -> FILA_PAL_PREF; só frações/avulso -> FILA_AVS_PREF)
       lt_ot = zcl_sepex_controle=>ler_ots( iv_lgnum = p_lgnum iv_vbeln = pv_vbeln ).
       DELETE lt_ot WHERE pquit = 'X'.
-      SORT lt_ot BY tanum.
+      SORT lt_ot BY tanum inteira DESCENDING.
       DELETE ADJACENT DUPLICATES FROM lt_ot COMPARING tanum.
       LOOP AT lt_ot INTO ls_ot.
+        IF ls_ot-inteira = 'X'.
+          lv_pref = ls_par-fila_pal_pref.
+        ELSE.
+          lv_pref = ls_par-fila_avs_pref.
+        ENDIF.
         TRY.
             zcl_sepex_wm=>aplicar_portao_ot( iv_lgnum     = p_lgnum
                                              iv_tanum     = ls_ot-tanum
                                              iv_lgtor     = pv_lgtor
                                              iv_lgbzo     = pv_lgbzo
-                                             iv_fila_pref = ls_par-fila_reg_pref ).
+                                             iv_fila_pref = lv_pref ).
             lv_qtd = lv_qtd + 1.
           CATCH zcx_sepex INTO lx_erro.
             po_log->add_excecao( lx_erro ).

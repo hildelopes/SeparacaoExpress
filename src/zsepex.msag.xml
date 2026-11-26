@@ -284,6 +284,12 @@
      <MSGNR>045</MSGNR>
      <TEXT>OT &amp;1: erro ao gravar portão/zona no cabeçalho (LTAK)</TEXT>
     </T100>
+    <T100>
+     <SPRSL>P</SPRSL>
+     <ARBGB>ZSEPEX</ARBGB>
+     <MSGNR>046</MSGNR>
+     <TEXT>OT &amp;1 (&amp;2) criada para remessa &amp;3 (&amp;4 UD/itens)</TEXT>
+    </T100>
    </T100>
   </asx:values>
  </asx:abap>

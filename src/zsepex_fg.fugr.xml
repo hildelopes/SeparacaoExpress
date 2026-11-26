@@ -166,6 +166,11 @@
        <TYP>TANUM</TYP>
       </RSEXP>
       <RSEXP>
+       <PARAMETER>E_TANUM_AVS</PARAMETER>
+       <REFERENCE>X</REFERENCE>
+       <TYP>TANUM</TYP>
+      </RSEXP>
+      <RSEXP>
        <PARAMETER>E_ITENS_OK</PARAMETER>
        <REFERENCE>X</REFERENCE>
        <TYP>INT4</TYP>

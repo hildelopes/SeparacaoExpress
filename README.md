@@ -26,11 +26,11 @@ docs/                  especificação, análises, decisões e apresentação
 
 | Objeto | Tipo | Descrição |
 |---|---|---|
-| `ZSEPEX_T_PAR` | Tabela (C) | Parâmetros por depósito: tipo/área/posição virtual, tipo de movimento da regularização, OT imediata, tipo de depósito do avulso (`LGTYP_AVS`), reabastecimento automático (`REAB_AUTO`), UD parcial (`UD_PARCIAL`), prefixo da fila RF por portão (`FILA_REG_PREF`), dias de alerta, e-mails, ativo |
+| `ZSEPEX_T_PAR` | Tabela (C) | Parâmetros por depósito: tipo/área/posição virtual, tipo de movimento da regularização, OT imediata, tipo de depósito do avulso (`LGTYP_AVS`), reabastecimento automático (`REAB_AUTO`), UD parcial (`UD_PARCIAL`), prefixos das filas RF por portão (`FILA_PAL_PREF` paletes, `FILA_AVS_PREF` avulso), dias de alerta, e-mails, ativo |
 | `ZSEPEX_T_PAR_LT` | Tabela (C) | Tipos de depósito de origem da regularização, com prioridade (ex.: DIA, DTA, XDC, DII) |
 | `ZSEPEX_T_CAB` | Tabela (A) | Processo Express por remessa de saída: origem (I/A), id de origem, carga, grupo, portão/zona de expedição (`LGTOR`/`LGBZO`), status, datas |
 | `ZSEPEX_T_ITM` | Tabela (A) | Itens de lote da remessa: quantidade, OT virtual, quantidade regularizada, status |
-| `ZSEPEX_T_OT` | Tabela (A) | Itens das OTs de regularização: UD, quantidades teórica/real/diferença, confirmação |
+| `ZSEPEX_T_OT` | Tabela (A) | Itens das OTs de regularização: UD, palete inteiro ou fração (`INTEIRA`), quantidades teórica/real/diferença, confirmação |
 | `ZSEPEX_T_VOL` | Tabela (A) | Volumes separados (UD inteira ou etiqueta) por carga, para a conferência de expedição (fase 1b) |
 | `ZSEPEX_S_SALDO`, `ZSEPEX_T_SALDO_TT` | Estrutura / tipo tabela | Saldo pendente por material/centro/lote (interface da `ZSEPEX_SALDO_PENDENTE`) |
 | `ZSEPEX_S_UD`, `ZSEPEX_T_UD_TT` | Estrutura / tipo tabela | UD selecionada para regularização |
@@ -38,7 +38,7 @@ docs/                  especificação, análises, decisões e apresentação
 | `ZSEPEX_D_*`, `ZSEPEX_*` | Domínios / elementos | Status (0,1,2,3,4,5,9), origem (I/A), tipo de volume (U/E), dias, quantidade, tipo de depósito do avulso, reabastecimento automático, UD parcial, prefixo da fila RF |
 | `EZSEPEX_CAB` | Bloqueio | Por depósito + remessa |
 | `ZSEPEX_EXP` | Autorização (**criar na SU21, não vem pelo abapGit**) | ACTVT (01 liberar, 03 exibir, 16 regularizar, 85 desfazer) + LGNUM |
-| `ZSEPEX` | Mensagens | 000 a 045 |
+| `ZSEPEX` | Mensagens | 000 a 046 |
 
 ### Código
 
@@ -72,8 +72,8 @@ Fase 1b (ainda não no repositório): RF Express `ZSEPEXRF` e adaptação do `ZW
 |---|---|---|
 | 0 | **SU21** | **Antes do pull.** Criar o objeto `ZSEPEX_EXP` na classe `AAAB`, texto "Separação Express - execução", campos `ACTVT` e `LGNUM`, atividades permitidas 01, 03, 16, 85. Salvar na request, clicar em "Gerar posteriormente SAP_ALL" (ou `RSUSR406`), logoff/logon. O SUSO não está em `src/` porque o import via abapGit gravou o objeto sem campos e o SAP_ALL regenerado trava a correção (ver `docs/referencia_zsepex_exp.suso.xml` só como referência). Leva o objeto para QAS/PRD pela request de transporte. |
 | 1 | **SLG0** | Objeto `ZSEPEX`, subobjeto `EXPRESS` |
-| 2 | **SE54** | Gerar manutenção SM30 para `ZSEPEX_T_PAR` e `ZSEPEX_T_PAR_LT` (grupo de funções `ZSEPEX_TMG`). Depois de um pull que acrescente campos à `ZSEPEX_T_PAR` (como `LGTYP_AVS`, `REAB_AUTO`, `UD_PARCIAL`, `FILA_REG_PREF`), regerar a manutenção na SE54 |
-| 3 | **SM30** | `ZSEPEX_T_PAR`: `LGNUM = DFC`, `LGTYP_VIRT = 9EX`, `LGBER_VIRT = 001`, `LGPLA_VIRT = EXPRESS`, `BWLVS_REG` = tipo de movimento WM da regularização, `OT_IMEDIATA = X`, `LGTYP_AVS = AVS` (tipo de depósito do avulso, posição fixa da MLGT), `REAB_AUTO = X` (cria NT/OT 919 quando o avulso não cobre), `UD_PARCIAL` em branco (não tira fração de palete de UD de posição), `FILA_REG_PREF = AV` (OT de regularização vai para a fila `AV_D_<portão>`, cadastrada na LRF1; em branco não mexe na fila), `DIAS_ALERTA = 7`, e-mails separados por `;`, `ATIVO = X`. `ZSEPEX_T_PAR_LT`: `DIA`, `DTA`, `XDC`, `DII` com prioridade |
+| 2 | **SE54** | Gerar manutenção SM30 para `ZSEPEX_T_PAR` e `ZSEPEX_T_PAR_LT` (grupo de funções `ZSEPEX_TMG`). Depois de um pull que acrescente campos à `ZSEPEX_T_PAR` (como `LGTYP_AVS`, `REAB_AUTO`, `UD_PARCIAL`, `FILA_PAL_PREF`, `FILA_AVS_PREF`), regerar a manutenção na SE54 |
+| 3 | **SM30** | `ZSEPEX_T_PAR`: `LGNUM = DFC`, `LGTYP_VIRT = 9EX`, `LGBER_VIRT = 001`, `LGPLA_VIRT = EXPRESS`, `BWLVS_REG` = tipo de movimento WM da regularização, `OT_IMEDIATA = X`, `LGTYP_AVS = AVS` (tipo de depósito do avulso, posição fixa da MLGT), `REAB_AUTO = X` (cria NT/OT 919 quando o avulso não cobre), `UD_PARCIAL` em branco (não tira fração de palete de UD de posição), `FILA_PAL_PREF = PC` e `FILA_AVS_PREF = AV` (OT de paletes inteiros vai para `PC_D_<portão>` e OT de avulso para `AV_D_<portão>`, filas cadastradas na LRF1; em branco não mexe na fila), `DIAS_ALERTA = 7`, e-mails separados por `;`, `ATIVO = X`. `ZSEPEX_T_PAR_LT`: `DIA`, `DTA`, `XDC`, `DII` com prioridade |
 | 4 | **PFCG** | Perfis com `ZSEPEX_EXP` (01 encarregado, 16 regularização, 03 consulta) e transações ZSEPEX02/03/04 |
 | 5 | **SM36** | `ZSEPEX_R_SINCRONIZAR` a cada 30 min; `ZSEPEX_R_PENDENCIAS` diário com `P_EMAIL = X` |
 
@@ -88,10 +88,12 @@ Fase 1b (ainda não no repositório): RF Express `ZSEPEXRF` e adaptação do `ZW
 
 ### Portão e zona na OT de regularização
 
-A OT de regularização nasce com o portão/zona da remessa de transferência (`LIKP-LGTOR/LGBZO`,
-gravados pela tela 0101 do Monitor de Carga antes do Express) no cabeçalho (`LTAK-LGTOR/LGBZO`,
-visíveis na LT21/LT23) e vai para a fila RF do portão (`<FILA_REG_PREF>_D_<portão>`, ex.
-`AV_D_160`, cadastrada na LRF1). O valor fica em `ZSEPEX_T_CAB-LGTOR/LGBZO`; registros antigos
+A regularização gera até duas OTs por remessa, como o Monitor de Carga separa palete x avulso:
+uma com os paletes inteiros e outra com as frações de palete (avulso). Cada OT nasce com o
+portão/zona da remessa de transferência (`LIKP-LGTOR/LGBZO`, gravados pela tela 0101 do Monitor
+de Carga antes do Express) no cabeçalho (`LTAK-LGTOR/LGBZO`, visíveis na LT21/LT23) e vai para a
+fila RF do portão: paletes `<FILA_PAL_PREF>_D_<portão>` (ex. `PC_D_001`), avulso
+`<FILA_AVS_PREF>_D_<portão>` (ex. `AV_D_001`), filas cadastradas na LRF1. O valor fica em `ZSEPEX_T_CAB-LGTOR/LGBZO`; registros antigos
 sem portão caem na remessa. No ZSEPEX02 o botão **Portão/Zona** redefine para as remessas
 selecionadas: remessa (só sem saída de mercadoria, senão mensagem 039), cabeçalho Express e
 OTs de regularização abertas (portão/zona + fila). A tela padrão de destino da LM05 continua

@@ -7,6 +7,7 @@ FUNCTION zsepex_cria_ot_regul.
 *"     REFERENCE(I_TESTE) TYPE  XFELD DEFAULT ' '
 *"  EXPORTING
 *"     REFERENCE(E_TANUM) TYPE  TANUM
+*"     REFERENCE(E_TANUM_AVS) TYPE  TANUM
 *"     REFERENCE(E_ITENS_OK) TYPE  INT4
 *"     REFERENCE(E_ITENS_PEND) TYPE  INT4
 *"  TABLES
@@ -17,12 +18,15 @@ FUNCTION zsepex_cria_ot_regul.
 *"----------------------------------------------------------------------
 * Para cada item da remessa com saldo pendente (MENGE - QTD_REGUL - em
 * OT aberta), seleciona UDs do MESMO lote (regra 1: o lote escolhido na
-* separação virtual é obrigatório) e cria UMA OT de regularização por
-* remessa, com um item por UD/quant, destino = posição virtual. A OT
-* fica aberta (reserva as UDs) até a confirmação no RF.
-* Portão/zona: a OT recebe no cabeçalho (LTAK-LGTOR/LGBZO) o portão/zona
-* do cabeçalho Express (padrão: o da remessa de transferência) e vai para
-* a fila RF do portão (ZSEPEX_T_PAR-FILA_REG_PREF + _D_ + portão).
+* separação virtual é obrigatório) e cria as OTs de regularização da
+* remessa, com um item por UD/quant, destino = posição virtual: uma OT
+* com os paletes inteiros (E_TANUM) e outra com as frações de palete /
+* avulso (E_TANUM_AVS), como o Monitor de Carga separa palete x avulso.
+* As OTs ficam abertas (reservam as UDs) até a confirmação no RF.
+* Portão/zona: cada OT recebe no cabeçalho (LTAK-LGTOR/LGBZO) o portão/
+* zona do cabeçalho Express (padrão: o da remessa de transferência) e vai
+* para a fila RF do portão: paletes FILA_PAL_PREF_D_portão (ex. PC_D_001),
+* avulso FILA_AVS_PREF_D_portão (ex. AV_D_001).
 * Regra do armazém (ZCL_SEPEX_UD): paletes inteiros das posições, fração
 * de palete do avulso (LGTYP_AVS). Se o avulso não cobre e REAB_AUTO = X,
 * cria o reabastecimento NT/OT 919 (ZFWM_REABASTECIMENTO) e deixa o item
@@ -60,9 +64,21 @@ FUNCTION zsepex_cria_ot_regul.
         lv_lgbzo   TYPE lgbzo,
         lv_queue   TYPE lrf_queue,
         lx_portao  TYPE REF TO zcx_sepex,
-        ls_ret     TYPE bapiret2.
+        ls_ret     TYPE bapiret2,
+        lt_ud_pal  TYPE zsepex_t_ud_tt,
+        lt_ud_avs  TYPE zsepex_t_ud_tt.
 
-  CLEAR: e_tanum, e_itens_ok, e_itens_pend, t_return[], t_ud[].
+  TYPES: BEGIN OF lty_criada,
+           tanum   TYPE tanum,
+           inteira TYPE xfeld,
+           pref    TYPE zsepex_fila_reg_pref,
+           tipo    TYPE c LENGTH 10,
+           qtd     TYPE i,
+         END OF lty_criada.
+  DATA: lt_criadas TYPE STANDARD TABLE OF lty_criada,
+        ls_criada  TYPE lty_criada.
+
+  CLEAR: e_tanum, e_tanum_avs, e_itens_ok, e_itens_pend, t_return[], t_ud[].
   DATA lv_ext TYPE balnrext.
   lv_ext = i_vbeln.
   CREATE OBJECT lo_log EXPORTING iv_extnumber = lv_ext.
@@ -124,9 +140,10 @@ FUNCTION zsepex_cria_ot_regul.
           ls_ot-posnr = ls_itm-posnr.
           ls_ot-matnr = ls_itm-matnr.
           ls_ot-charg = ls_itm-charg.
-          ls_ot-vlenr = ls_ud-lenum.
-          ls_ot-vsolm = ls_ud-menge.
-          ls_ot-meins = ls_ud-meins.
+          ls_ot-vlenr   = ls_ud-lenum.
+          ls_ot-inteira = ls_ud-inteira.
+          ls_ot-vsolm   = ls_ud-menge.
+          ls_ot-meins   = ls_ud-meins.
           APPEND ls_ot TO lt_ot.   " marcado por TANUM vazio
         ENDLOOP.
         IF lv_falta > 0.
@@ -191,11 +208,6 @@ FUNCTION zsepex_cria_ot_regul.
         RETURN.
       ENDIF.
 
-      lv_tanum = zcl_sepex_wm=>criar_ot_regularizacao( iv_lgnum = i_lgnum
-                                                       is_par   = ls_par
-                                                       it_ud    = lt_ud_all ).
-      e_tanum = lv_tanum.
-
       " Portão/zona: cabeçalho Express; registros antigos caem na remessa
       lv_lgtor = ls_cab-lgtor.
       lv_lgbzo = ls_cab-lgbzo.
@@ -208,44 +220,108 @@ FUNCTION zsepex_cria_ot_regul.
                                                   iv_lgtor = lv_lgtor iv_lgbzo = lv_lgbzo ).
         ENDIF.
       ENDIF.
-      IF lv_lgtor IS NOT INITIAL.
-        TRY.
-            lv_queue = zcl_sepex_wm=>aplicar_portao_ot( iv_lgnum     = i_lgnum
-                                                        iv_tanum     = lv_tanum
-                                                        iv_lgtor     = lv_lgtor
-                                                        iv_lgbzo     = lv_lgbzo
-                                                        iv_fila_pref = ls_par-fila_reg_pref
-                                                        iv_commit    = space ).
-            lo_log->add_msg( iv_msgty = 'I' iv_msgno = '040' iv_msgv1 = lv_tanum
-                             iv_msgv2 = lv_lgtor iv_msgv3 = lv_lgbzo iv_msgv4 = lv_queue ).
-          CATCH zcx_sepex INTO lx_portao.
-            " Falha no portão/fila não desfaz a OT (já gravada pela
-            " L_TO_CREATE_MULTIPLE): fica como aviso no log
-            ls_ret = lx_portao->get_bapiret( ).
-            ls_ret-type = 'W'.
-            lo_log->add_bapiret( ls_ret ).
-        ENDTRY.
+
+      " Duas OTs por remessa, como o Monitor de Carga separa palete x
+      " avulso: paletes inteiros (fila PC_D_portão) e frações de palete /
+      " avulso (fila AV_D_portão)
+      LOOP AT lt_ud_all INTO ls_ud.
+        IF ls_ud-inteira = 'X'.
+          APPEND ls_ud TO lt_ud_pal.
+        ELSE.
+          APPEND ls_ud TO lt_ud_avs.
+        ENDIF.
+      ENDLOOP.
+
+      IF lt_ud_pal IS NOT INITIAL.
+        CLEAR ls_criada.
+        ls_criada-tanum   = zcl_sepex_wm=>criar_ot_regularizacao( iv_lgnum = i_lgnum
+                                                                   is_par   = ls_par
+                                                                   it_ud    = lt_ud_pal ).
+        ls_criada-inteira = 'X'.
+        ls_criada-pref    = ls_par-fila_pal_pref.
+        ls_criada-tipo    = 'paletes'.
+        ls_criada-qtd     = lines( lt_ud_pal ).
+        APPEND ls_criada TO lt_criadas.
+        e_tanum = ls_criada-tanum.
+      ENDIF.
+      IF lt_ud_avs IS NOT INITIAL.
+        CLEAR ls_criada.
+        IF lt_criadas IS INITIAL.
+          ls_criada-tanum = zcl_sepex_wm=>criar_ot_regularizacao( iv_lgnum = i_lgnum
+                                                                   is_par   = ls_par
+                                                                   it_ud    = lt_ud_avs ).
+        ELSE.
+          " A OT dos paletes já existe (commit da L_TO_CREATE_MULTIPLE):
+          " falha aqui não pode desfazer o controle dela - vira aviso e o
+          " avulso fica pendente para a próxima execução
+          TRY.
+              ls_criada-tanum = zcl_sepex_wm=>criar_ot_regularizacao( iv_lgnum = i_lgnum
+                                                                       is_par   = ls_par
+                                                                       it_ud    = lt_ud_avs ).
+            CATCH zcx_sepex INTO lx_portao.
+              ls_ret = lx_portao->get_bapiret( ).
+              ls_ret-type = 'W'.
+              lo_log->add_bapiret( ls_ret ).
+              CLEAR ls_criada-tanum.
+          ENDTRY.
+        ENDIF.
+        IF ls_criada-tanum IS NOT INITIAL.
+          ls_criada-pref = ls_par-fila_avs_pref.
+          ls_criada-tipo = 'avulso'.
+          ls_criada-qtd  = lines( lt_ud_avs ).
+          APPEND ls_criada TO lt_criadas.
+          e_tanum_avs = ls_criada-tanum.
+          IF e_tanum IS INITIAL.
+            e_tanum = ls_criada-tanum.
+          ENDIF.
+        ENDIF.
       ENDIF.
 
-      " Itens da OT criada -> ZSEPEX_T_OT (casa por UD + material + lote)
-      lt_ltap = zcl_sepex_wm=>ler_ltap( iv_lgnum = i_lgnum iv_tanum = lv_tanum ).
-      LOOP AT lt_ot INTO ls_ot WHERE tanum IS INITIAL.
-        lv_idx = sy-tabix.
-        READ TABLE lt_ltap INTO ls_ltap WITH KEY vlenr = ls_ot-vlenr
-                                                 matnr = ls_ot-matnr
-                                                 charg = ls_ot-charg.
-        IF sy-subrc <> 0.
-          READ TABLE lt_ltap INTO ls_ltap WITH KEY matnr = ls_ot-matnr
+      LOOP AT lt_criadas INTO ls_criada.
+        lv_tanum = ls_criada-tanum.
+
+        " Portão/zona no cabeçalho da OT e fila RF do portão por tipo
+        IF lv_lgtor IS NOT INITIAL.
+          TRY.
+              lv_queue = zcl_sepex_wm=>aplicar_portao_ot( iv_lgnum     = i_lgnum
+                                                          iv_tanum     = lv_tanum
+                                                          iv_lgtor     = lv_lgtor
+                                                          iv_lgbzo     = lv_lgbzo
+                                                          iv_fila_pref = ls_criada-pref
+                                                          iv_commit    = space ).
+              lo_log->add_msg( iv_msgty = 'I' iv_msgno = '040' iv_msgv1 = lv_tanum
+                               iv_msgv2 = lv_lgtor iv_msgv3 = lv_lgbzo iv_msgv4 = lv_queue ).
+            CATCH zcx_sepex INTO lx_portao.
+              " Falha no portão/fila não desfaz a OT (já gravada pela
+              " L_TO_CREATE_MULTIPLE): fica como aviso no log
+              ls_ret = lx_portao->get_bapiret( ).
+              ls_ret-type = 'W'.
+              lo_log->add_bapiret( ls_ret ).
+          ENDTRY.
+        ENDIF.
+
+        " Itens da OT criada -> ZSEPEX_T_OT (casa por UD + material + lote,
+        " dentro do mesmo tipo: palete inteiro ou avulso)
+        lt_ltap = zcl_sepex_wm=>ler_ltap( iv_lgnum = i_lgnum iv_tanum = lv_tanum ).
+        LOOP AT lt_ot INTO ls_ot WHERE tanum IS INITIAL
+                                   AND inteira = ls_criada-inteira.
+          lv_idx = sy-tabix.
+          READ TABLE lt_ltap INTO ls_ltap WITH KEY vlenr = ls_ot-vlenr
+                                                   matnr = ls_ot-matnr
                                                    charg = ls_ot-charg.
-        ENDIF.
-        IF sy-subrc = 0.
-          ls_ot-tanum = ls_ltap-tanum.
-          ls_ot-tapos = ls_ltap-tapos.
-          ls_ot-vsolm = ls_ltap-vsolm.
-          ls_ot-meins = ls_ltap-meins.
-          DELETE lt_ltap INDEX sy-tabix.
-          MODIFY lt_ot FROM ls_ot INDEX lv_idx.
-        ENDIF.
+          IF sy-subrc <> 0.
+            READ TABLE lt_ltap INTO ls_ltap WITH KEY matnr = ls_ot-matnr
+                                                     charg = ls_ot-charg.
+          ENDIF.
+          IF sy-subrc = 0.
+            ls_ot-tanum = ls_ltap-tanum.
+            ls_ot-tapos = ls_ltap-tapos.
+            ls_ot-vsolm = ls_ltap-vsolm.
+            ls_ot-meins = ls_ltap-meins.
+            DELETE lt_ltap INDEX sy-tabix.
+            MODIFY lt_ot FROM ls_ot INDEX lv_idx.
+          ENDIF.
+        ENDLOOP.
       ENDLOOP.
       DELETE lt_ot WHERE tanum IS INITIAL.
       zcl_sepex_controle=>gravar_ots( lt_ot ).
@@ -256,8 +332,10 @@ FUNCTION zsepex_cria_ot_regul.
       ENDIF.
       COMMIT WORK AND WAIT.
 
-      lo_log->add_msg( iv_msgno = '012' iv_msgv1 = lv_tanum iv_msgv2 = i_vbeln
-                       iv_msgv3 = lines( lt_ud_all ) ).
+      LOOP AT lt_criadas INTO ls_criada.
+        lo_log->add_msg( iv_msgno = '046' iv_msgv1 = ls_criada-tanum iv_msgv2 = ls_criada-tipo
+                         iv_msgv3 = i_vbeln iv_msgv4 = ls_criada-qtd ).
+      ENDLOOP.
 
       zcl_sepex_controle=>desbloquear( iv_lgnum = i_lgnum iv_vbeln = i_vbeln ).
       lo_log->salvar( ).
