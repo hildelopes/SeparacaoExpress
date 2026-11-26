@@ -224,6 +224,66 @@
      <MSGNR>035</MSGNR>
      <TEXT>Material &amp;1 lote &amp;2: &amp;3 &amp;4 sem palete inteiro disponível nas posições</TEXT>
     </T100>
+    <T100>
+     <SPRSL>P</SPRSL>
+     <ARBGB>ZSEPEX</ARBGB>
+     <MSGNR>036</MSGNR>
+     <TEXT>Portão &amp;1 / zona &amp;2 aplicados à remessa &amp;3 e &amp;4 OT(s)</TEXT>
+    </T100>
+    <T100>
+     <SPRSL>P</SPRSL>
+     <ARBGB>ZSEPEX</ARBGB>
+     <MSGNR>037</MSGNR>
+     <TEXT>Portão &amp;1 inválido no depósito &amp;2</TEXT>
+    </T100>
+    <T100>
+     <SPRSL>P</SPRSL>
+     <ARBGB>ZSEPEX</ARBGB>
+     <MSGNR>038</MSGNR>
+     <TEXT>Zona &amp;1 inválida para o portão &amp;2</TEXT>
+    </T100>
+    <T100>
+     <SPRSL>P</SPRSL>
+     <ARBGB>ZSEPEX</ARBGB>
+     <MSGNR>039</MSGNR>
+     <TEXT>Remessa &amp;1 já com saída: portão/zona só nas OTs</TEXT>
+    </T100>
+    <T100>
+     <SPRSL>P</SPRSL>
+     <ARBGB>ZSEPEX</ARBGB>
+     <MSGNR>040</MSGNR>
+     <TEXT>OT &amp;1: portão &amp;2 / zona &amp;3 gravados (fila &amp;4)</TEXT>
+    </T100>
+    <T100>
+     <SPRSL>P</SPRSL>
+     <ARBGB>ZSEPEX</ARBGB>
+     <MSGNR>041</MSGNR>
+     <TEXT>OT &amp;1: fila &amp;2 não atribuída: &amp;3</TEXT>
+    </T100>
+    <T100>
+     <SPRSL>P</SPRSL>
+     <ARBGB>ZSEPEX</ARBGB>
+     <MSGNR>042</MSGNR>
+     <TEXT>OT &amp;1 não encontrada ou já confirmada no depósito &amp;2</TEXT>
+    </T100>
+    <T100>
+     <SPRSL>P</SPRSL>
+     <ARBGB>ZSEPEX</ARBGB>
+     <MSGNR>043</MSGNR>
+     <TEXT>Erro ao atualizar portão/zona da remessa &amp;1: &amp;2</TEXT>
+    </T100>
+    <T100>
+     <SPRSL>P</SPRSL>
+     <ARBGB>ZSEPEX</ARBGB>
+     <MSGNR>044</MSGNR>
+     <TEXT>OT &amp;1 bloqueada por outro usuário (&amp;2)</TEXT>
+    </T100>
+    <T100>
+     <SPRSL>P</SPRSL>
+     <ARBGB>ZSEPEX</ARBGB>
+     <MSGNR>045</MSGNR>
+     <TEXT>OT &amp;1: erro ao gravar portão/zona no cabeçalho (LTAK)</TEXT>
+    </T100>
    </T100>
   </asx:values>
  </asx:abap>

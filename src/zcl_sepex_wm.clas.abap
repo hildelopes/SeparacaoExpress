@@ -1,6 +1,7 @@
 "! Separação Express - encapsula as chamadas WM:
 "! OT virtual da remessa (L_TO_CREATE_DN com origem manual + L_TO_CONFIRM),
-"! OT de regularização (L_TO_CREATE_MULTIPLE por UD) e leitura de LTAP.
+"! OT de regularização (L_TO_CREATE_MULTIPLE por UD), portão/zona e fila RF
+"! da OT de regularização (LTAK-LGTOR/LGBZO + L_RFMON_TO_REASSIGN) e LTAP.
 CLASS zcl_sepex_wm DEFINITION
   PUBLIC
   FINAL
@@ -77,6 +78,44 @@ CLASS zcl_sepex_wm DEFINITION
         !iv_tanum       TYPE tanum
       RETURNING
         VALUE(rt_ltap)  TYPE ty_t_ltap.
+
+    "! Portão (LIKP-LGTOR) e zona (LIKP-LGBZO) da remessa
+    CLASS-METHODS ler_portao_remessa
+      IMPORTING
+        !iv_vbeln TYPE vbeln_vl
+      EXPORTING
+        !ev_lgtor TYPE lgtor
+        !ev_lgbzo TYPE lgbzo.
+
+    "! Grava portão/zona na remessa (WS_DELIVERY_UPDATE, mesmo padrão do
+    "! ZWMR0010 ZF_AG_PORTAO_REMESSA). COMMIT próprio. Só remessa sem saída.
+    CLASS-METHODS atualizar_portao_remessa
+      IMPORTING
+        !iv_vbeln TYPE vbeln_vl
+        !iv_lgtor TYPE lgtor
+        !iv_lgbzo TYPE lgbzo
+      RAISING
+        zcx_sepex.
+
+    "! Aplica portão/zona ao cabeçalho da OT (LTAK-LGTOR/LGBZO, campos
+    "! informativos: LT21/LT23, impressão, RF) e, se IV_FILA_PREF informado,
+    "! move a OT para a fila RF do portão (PREF_D_portão, L_RFMON_TO_REASSIGN,
+    "! convenção do Monitor de Separação de Carga). Só OT aberta.
+    "! IV_COMMIT = X: COMMIT próprio; espaço: o chamador faz o COMMIT.
+    "! Erro só na fila: portão/zona ficam gravados e a exceção é msg 041.
+    "! Devolve a fila final da OT.
+    CLASS-METHODS aplicar_portao_ot
+      IMPORTING
+        !iv_lgnum       TYPE lgnum
+        !iv_tanum       TYPE tanum
+        !iv_lgtor       TYPE lgtor
+        !iv_lgbzo       TYPE lgbzo OPTIONAL
+        !iv_fila_pref   TYPE zsepex_fila_reg_pref OPTIONAL
+        !iv_commit      TYPE xfeld DEFAULT 'X'
+      RETURNING
+        VALUE(rv_queue) TYPE lrf_queue
+      RAISING
+        zcx_sepex.
 
     "! Reabastecimento do avulso em andamento (NT 919 aberta ou OT 919
     "! aberta com destino no tipo de depósito do avulso) para o
@@ -380,6 +419,171 @@ CLASS zcl_sepex_wm IMPLEMENTATION.
                             iv_msgv2 = sy-subrc ).
     ENDIF.
     rv_tanum = lv_tanum.
+  ENDMETHOD.
+
+  METHOD ler_portao_remessa.
+    CLEAR: ev_lgtor, ev_lgbzo.
+    SELECT SINGLE lgtor lgbzo FROM likp INTO (ev_lgtor, ev_lgbzo)
+      WHERE vbeln = iv_vbeln.
+  ENDMETHOD.
+
+  METHOD atualizar_portao_remessa.
+    DATA: ls_vbkok TYPE vbkok,
+          lt_prot  TYPE STANDARD TABLE OF prott,
+          ls_prot  TYPE prott,
+          lv_msg   TYPE bapi_msg.
+
+    ls_vbkok-vbeln_vl = iv_vbeln.
+    ls_vbkok-vbeln    = iv_vbeln.
+    ls_vbkok-kztor    = 'X'.
+    ls_vbkok-lgtor    = iv_lgtor.
+    ls_vbkok-kzlgbzo  = 'X'.
+    ls_vbkok-lgbzo    = iv_lgbzo.
+
+    CALL FUNCTION 'WS_DELIVERY_UPDATE'
+      EXPORTING
+        vbkok_wa       = ls_vbkok
+        synchron       = 'X'
+        commit         = 'X'
+        delivery       = iv_vbeln
+        update_picking = space
+      TABLES
+        prot           = lt_prot
+      EXCEPTIONS
+        error_message  = 1
+        OTHERS         = 2.
+    IF sy-subrc <> 0.
+      IF sy-msgid IS NOT INITIAL.
+        zcx_sepex=>raise_sy( ).
+      ENDIF.
+      zcx_sepex=>raise_msg( iv_msgno = '043' iv_msgv1 = iv_vbeln
+                            iv_msgv2 = 'WS_DELIVERY_UPDATE' ).
+    ENDIF.
+    LOOP AT lt_prot INTO ls_prot WHERE msgty CA 'EAX'.
+      MESSAGE ID ls_prot-msgid TYPE 'S' NUMBER ls_prot-msgno
+        WITH ls_prot-msgv1 ls_prot-msgv2 ls_prot-msgv3 ls_prot-msgv4
+        INTO lv_msg.
+      zcx_sepex=>raise_msg( iv_msgno = '043' iv_msgv1 = iv_vbeln iv_msgv2 = lv_msg ).
+    ENDLOOP.
+    CALL FUNCTION 'BAPI_TRANSACTION_COMMIT'
+      EXPORTING
+        wait = 'X'.
+  ENDMETHOD.
+
+  METHOD aplicar_portao_ot.
+    DATA: lv_kquit       TYPE ltak-kquit,
+          lv_queue_atual TYPE lrf_queue,
+          lv_lgtor_atual TYPE lgtor,
+          lv_lgbzo_atual TYPE lgbzo,
+          lv_queue       TYPE lrf_queue,
+          lv_nome        TYPE string,
+          lv_msg         TYPE bapi_msg,
+          lv_erro_fila   TYPE xfeld.
+
+    IF iv_lgtor IS INITIAL.
+      RETURN.
+    ENDIF.
+
+    SELECT SINGLE kquit queue lgtor lgbzo FROM ltak
+      INTO (lv_kquit, lv_queue_atual, lv_lgtor_atual, lv_lgbzo_atual)
+      WHERE lgnum = iv_lgnum
+        AND tanum = iv_tanum.
+    IF sy-subrc <> 0 OR lv_kquit = 'X'.
+      zcx_sepex=>raise_msg( iv_msgno = '042' iv_msgv1 = iv_tanum iv_msgv2 = iv_lgnum ).
+    ENDIF.
+    rv_queue = lv_queue_atual.
+
+    " 1) Portão/zona no cabeçalho da OT. Não há função standard para OT
+    "    manual (L_TO_CREATE_MULTIPLE não recebe portão); LTAK-LGTOR/LGBZO
+    "    são informativos, gravados sob o bloqueio da OT.
+    IF lv_lgtor_atual <> iv_lgtor OR lv_lgbzo_atual <> iv_lgbzo.
+      CALL FUNCTION 'ENQUEUE_ELTAKE'
+        EXPORTING
+          lgnum          = iv_lgnum
+          tanum          = iv_tanum
+        EXCEPTIONS
+          foreign_lock   = 1
+          system_failure = 2
+          OTHERS         = 3.
+      IF sy-subrc <> 0.
+        zcx_sepex=>raise_msg( iv_msgno = '044' iv_msgv1 = iv_tanum iv_msgv2 = sy-msgv1 ).
+      ENDIF.
+      UPDATE ltak SET lgtor = iv_lgtor
+                      lgbzo = iv_lgbzo
+        WHERE lgnum = iv_lgnum
+          AND tanum = iv_tanum.
+      IF sy-subrc <> 0.
+        CALL FUNCTION 'DEQUEUE_ELTAKE'
+          EXPORTING
+            lgnum = iv_lgnum
+            tanum = iv_tanum.
+        IF iv_commit = 'X'.
+          ROLLBACK WORK.
+        ENDIF.
+        zcx_sepex=>raise_msg( iv_msgno = '045' iv_msgv1 = iv_tanum ).
+      ENDIF.
+      CALL FUNCTION 'DEQUEUE_ELTAKE'
+        EXPORTING
+          lgnum = iv_lgnum
+          tanum = iv_tanum.
+    ENDIF.
+
+    " 2) Fila RF do portão (convenção do monitor: PREF_D_portão)
+    IF iv_fila_pref IS NOT INITIAL.
+      lv_nome = |{ iv_fila_pref }_D_{ iv_lgtor }|.
+      IF strlen( lv_nome ) > 10.
+        lv_erro_fila = 'X'.
+        lv_msg = 'nome da fila com mais de 10 caracteres'.
+      ELSE.
+        lv_queue = lv_nome.
+        IF lv_queue <> lv_queue_atual.
+          CALL FUNCTION 'L_RFMON_TO_REASSIGN'
+            EXPORTING
+              iv_lgnum           = iv_lgnum
+              iv_tanum           = iv_tanum
+              iv_queue           = lv_queue
+              iv_nocheck         = space
+            EXCEPTIONS
+              queue_not_existing = 1
+              to_complete        = 2
+              to_not_existing    = 3
+              error_message      = 4
+              OTHERS             = 5.
+          CASE sy-subrc.
+            WHEN 0.
+              rv_queue = lv_queue.
+            WHEN 1.
+              lv_erro_fila = 'X'.
+              lv_msg = 'fila não cadastrada (T346 / LRF1)'.
+            WHEN 2.
+              lv_erro_fila = 'X'.
+              lv_msg = 'OT já confirmada'.
+            WHEN 3.
+              lv_erro_fila = 'X'.
+              lv_msg = 'OT inexistente'.
+            WHEN OTHERS.
+              lv_erro_fila = 'X'.
+              IF sy-msgid IS NOT INITIAL.
+                MESSAGE ID sy-msgid TYPE 'S' NUMBER sy-msgno
+                  WITH sy-msgv1 sy-msgv2 sy-msgv3 sy-msgv4 INTO lv_msg.
+              ELSE.
+                lv_msg = 'erro na L_RFMON_TO_REASSIGN'.
+              ENDIF.
+          ENDCASE.
+        ENDIF.
+      ENDIF.
+    ENDIF.
+
+    IF iv_commit = 'X'.
+      CALL FUNCTION 'BAPI_TRANSACTION_COMMIT'
+        EXPORTING
+          wait = 'X'.
+    ENDIF.
+    IF lv_erro_fila = 'X'.
+      " portão/zona ficam gravados; só a fila falhou
+      zcx_sepex=>raise_msg( iv_msgno = '041' iv_msgv1 = iv_tanum
+                            iv_msgv2 = lv_nome iv_msgv3 = lv_msg ).
+    ENDIF.
   ENDMETHOD.
 
   METHOD ler_ltap.

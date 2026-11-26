@@ -20,6 +20,9 @@ FUNCTION zsepex_cria_ot_regul.
 * separação virtual é obrigatório) e cria UMA OT de regularização por
 * remessa, com um item por UD/quant, destino = posição virtual. A OT
 * fica aberta (reserva as UDs) até a confirmação no RF.
+* Portão/zona: a OT recebe no cabeçalho (LTAK-LGTOR/LGBZO) o portão/zona
+* do cabeçalho Express (padrão: o da remessa de transferência) e vai para
+* a fila RF do portão (ZSEPEX_T_PAR-FILA_REG_PREF + _D_ + portão).
 * Regra do armazém (ZCL_SEPEX_UD): paletes inteiros das posições, fração
 * de palete do avulso (LGTYP_AVS). Se o avulso não cobre e REAB_AUTO = X,
 * cria o reabastecimento NT/OT 919 (ZFWM_REABASTECIMENTO) e deixa o item
@@ -52,7 +55,12 @@ FUNCTION zsepex_cria_ot_regul.
         lx_reab    TYPE REF TO zcx_sepex,
         lv_tanum   TYPE tanum,
         lv_bloq    TYPE xfeld,
-        lv_idx     TYPE i.
+        lv_idx     TYPE i,
+        lv_lgtor   TYPE lgtor,
+        lv_lgbzo   TYPE lgbzo,
+        lv_queue   TYPE lrf_queue,
+        lx_portao  TYPE REF TO zcx_sepex,
+        ls_ret     TYPE bapiret2.
 
   CLEAR: e_tanum, e_itens_ok, e_itens_pend, t_return[], t_ud[].
   DATA lv_ext TYPE balnrext.
@@ -187,6 +195,37 @@ FUNCTION zsepex_cria_ot_regul.
                                                        is_par   = ls_par
                                                        it_ud    = lt_ud_all ).
       e_tanum = lv_tanum.
+
+      " Portão/zona: cabeçalho Express; registros antigos caem na remessa
+      lv_lgtor = ls_cab-lgtor.
+      lv_lgbzo = ls_cab-lgbzo.
+      IF lv_lgtor IS INITIAL.
+        zcl_sepex_wm=>ler_portao_remessa( EXPORTING iv_vbeln = i_vbeln
+                                          IMPORTING ev_lgtor = lv_lgtor
+                                                    ev_lgbzo = lv_lgbzo ).
+        IF lv_lgtor IS NOT INITIAL.
+          zcl_sepex_controle=>gravar_portao_zona( iv_lgnum = i_lgnum iv_vbeln = i_vbeln
+                                                  iv_lgtor = lv_lgtor iv_lgbzo = lv_lgbzo ).
+        ENDIF.
+      ENDIF.
+      IF lv_lgtor IS NOT INITIAL.
+        TRY.
+            lv_queue = zcl_sepex_wm=>aplicar_portao_ot( iv_lgnum     = i_lgnum
+                                                        iv_tanum     = lv_tanum
+                                                        iv_lgtor     = lv_lgtor
+                                                        iv_lgbzo     = lv_lgbzo
+                                                        iv_fila_pref = ls_par-fila_reg_pref
+                                                        iv_commit    = space ).
+            lo_log->add_msg( iv_msgty = 'I' iv_msgno = '040' iv_msgv1 = lv_tanum
+                             iv_msgv2 = lv_lgtor iv_msgv3 = lv_lgbzo iv_msgv4 = lv_queue ).
+          CATCH zcx_sepex INTO lx_portao.
+            " Falha no portão/fila não desfaz a OT (já gravada pela
+            " L_TO_CREATE_MULTIPLE): fica como aviso no log
+            ls_ret = lx_portao->get_bapiret( ).
+            ls_ret-type = 'W'.
+            lo_log->add_bapiret( ls_ret ).
+        ENDTRY.
+      ENDIF.
 
       " Itens da OT criada -> ZSEPEX_T_OT (casa por UD + material + lote)
       lt_ltap = zcl_sepex_wm=>ler_ltap( iv_lgnum = i_lgnum iv_tanum = lv_tanum ).

@@ -128,6 +128,14 @@ FUNCTION zsepex_separa_virtual.
         ls_cab-dt_virt = sy-datum.
         ls_cab-hr_virt = sy-uzeit.
       ENDIF.
+      " Portão/zona da remessa (gravados pelo monitor, tela 0101, antes
+      " desta chamada): padrão da OT de regularização; a ZSEPEX02 permite
+      " redefinir. Também preenche registros antigos sem portão.
+      IF ls_cab-lgtor IS INITIAL.
+        zcl_sepex_wm=>ler_portao_remessa( EXPORTING iv_vbeln = i_vbeln
+                                          IMPORTING ev_lgtor = ls_cab-lgtor
+                                                    ev_lgbzo = ls_cab-lgbzo ).
+      ENDIF.
 
       IF lv_tanum IS NOT INITIAL.
         lt_ltap = zcl_sepex_wm=>ler_ltap( iv_lgnum = i_lgnum iv_tanum = lv_tanum ).

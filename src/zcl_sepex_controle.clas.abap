@@ -86,6 +86,17 @@ CLASS zcl_sepex_controle DEFINITION
         !iv_status TYPE zsepex_status
         !iv_data   TYPE datum OPTIONAL.
 
+    "! Grava portão/zona de expedição no cabeçalho. Sem COMMIT.
+    "! Devolve o cabeçalho gravado (vazio se o processo não existe).
+    CLASS-METHODS gravar_portao_zona
+      IMPORTING
+        !iv_lgnum     TYPE lgnum
+        !iv_vbeln     TYPE vbeln_vl
+        !iv_lgtor     TYPE lgtor
+        !iv_lgbzo     TYPE lgbzo
+      RETURNING
+        VALUE(rs_cab) TYPE zsepex_t_cab.
+
     CLASS-METHODS bloquear
       IMPORTING
         !iv_lgnum TYPE lgnum
@@ -262,6 +273,14 @@ CLASS zcl_sepex_controle IMPLEMENTATION.
         ls_cab-dt_concl = sy-datum.
     ENDCASE.
     gravar_cab( CHANGING cs_cab = ls_cab ).
+  ENDMETHOD.
+
+  METHOD gravar_portao_zona.
+    rs_cab = ler_cab( iv_lgnum = iv_lgnum iv_vbeln = iv_vbeln ).
+    CHECK rs_cab IS NOT INITIAL.
+    rs_cab-lgtor = iv_lgtor.
+    rs_cab-lgbzo = iv_lgbzo.
+    gravar_cab( CHANGING cs_cab = rs_cab ).
   ENDMETHOD.
 
   METHOD bloquear.
