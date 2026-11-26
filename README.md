@@ -53,7 +53,7 @@ docs/                  especificação, análises, decisões, apresentação e r
 | `ZCL_SEPEX_LOG` | Application Log (objeto `ZSEPEX`, subobjeto `EXPRESS`) |
 | `ZCL_SEPEX_AUTH` | Verificação de `ZSEPEX_EXP` |
 | `ZSEPEX_FG` | FMs `ZSEPEX_SEPARA_VIRTUAL`, `ZSEPEX_CRIA_OT_REGUL`, `ZSEPEX_SALDO_PENDENTE` (interface clássica para o engine e a classe) |
-| `ZSEPEX_R_REGULARIZAR` / **ZSEPEX02** | Itens pendentes (com portão, zona e fila RF da OT); criar OTs de regularização; sincronizar; modo teste; botão **Portão/Zona** (remessa sem saída, cabeçalho Express e OTs abertas + fila RF) |
+| `ZSEPEX_R_REGULARIZAR` / **ZSEPEX02** | Itens pendentes (com portão, zona e fila RF da OT); filtros também sem a DT: remessa, grupo, origem/nº do processo, data da separação virtual, portão, material, lote, OT, UD, só itens em aberto; criar OTs de regularização; sincronizar; modo teste; botão **Portão/Zona** (remessa sem saída, cabeçalho Express e OTs abertas + fila RF) |
 | `ZSEPEX_R_PENDENCIAS` / **ZSEPEX03** | Pendências com alerta de prazo; versão de fechamento (saldo da posição virtual); e-mail |
 | `ZSEPEX_R_SINCRONIZAR` / **ZSEPEX04** | Job de sincronização (SM36); com `P_CRIAOT` tenta criar as OTs de regularização dos itens ainda sem OT (p.ex. após o reabastecimento) |
 | `ZSEPEX_R_CARGA_PAR` (SE38, sem transação) | Carga inicial de `ZSEPEX_T_PAR` e `ZSEPEX_T_PAR_LT` com os valores padrão da instalação; modo teste; usar após recarga do QAS ou na entrada em PRD |

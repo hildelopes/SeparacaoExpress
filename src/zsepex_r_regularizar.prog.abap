@@ -8,6 +8,9 @@
 *&    (bins -> posição virtual) para o saldo ainda sem OT - usado quando a
 *&    criação imediata não cobriu tudo ou após diferença no RF
 *&  - Sincronizar: lê LTAP/VBUK e atualiza status (igual ao job ZSEPEX04)
+*&  - Filtros sem o número da carga: remessa, grupo, origem/nº do processo,
+*&    data da separação virtual, portão, material, lote, OT e UD de
+*&    regularização, e "só itens em aberto"
 *&  - Botão Portão/Zona (ALV): define portão e zona de expedição para as
 *&    remessas selecionadas: cabeçalho Express, remessa (só sem saída) e
 *&    OTs de regularização abertas (LTAK-LGTOR/LGBZO + fila RF do portão:
@@ -16,7 +19,7 @@
 *&---------------------------------------------------------------------*
 REPORT zsepex_r_regularizar MESSAGE-ID zsepex.
 
-TABLES: zsepex_t_cab, zsepex_t_itm.
+TABLES: zsepex_t_cab, zsepex_t_itm, zsepex_t_ot.
 
 TYPES: BEGIN OF ty_saida,
          origem     TYPE zsepex_origem,
@@ -70,9 +73,21 @@ SELECTION-SCREEN BEGIN OF BLOCK b1 WITH FRAME TITLE TEXT-001.
 PARAMETERS:     p_lgnum  TYPE lgnum OBLIGATORY.
 SELECT-OPTIONS: s_tknum  FOR zsepex_t_cab-tknum,
                 s_vbeln  FOR zsepex_t_cab-vbeln,
-                s_status FOR zsepex_t_cab-status,
-                s_matnr  FOR zsepex_t_itm-matnr.
+                s_status FOR zsepex_t_cab-status.
 SELECTION-SCREEN END OF BLOCK b1.
+" Filtros para quem não tem o número da carga (DT)
+SELECTION-SCREEN BEGIN OF BLOCK b4 WITH FRAME TITLE TEXT-004.
+SELECT-OPTIONS: s_refnr  FOR zsepex_t_cab-refnr,
+                s_origem FOR zsepex_t_cab-origem,
+                s_origid FOR zsepex_t_cab-origem_id,
+                s_dtvirt FOR zsepex_t_cab-dt_virt,
+                s_lgtor  FOR zsepex_t_cab-lgtor,
+                s_matnr  FOR zsepex_t_itm-matnr,
+                s_charg  FOR zsepex_t_itm-charg,
+                s_tanum  FOR zsepex_t_ot-tanum,
+                s_lenum  FOR zsepex_t_ot-vlenr.
+PARAMETERS:     p_sopend AS CHECKBOX.
+SELECTION-SCREEN END OF BLOCK b4.
 SELECTION-SCREEN BEGIN OF BLOCK b2 WITH FRAME TITLE TEXT-002.
 PARAMETERS: p_exibir RADIOBUTTON GROUP acao DEFAULT 'X',
             p_criar  RADIOBUTTON GROUP acao,
@@ -131,7 +146,76 @@ FORM f_ler_cabs CHANGING ct_cab TYPE zsepex_t_cab_tt.
   ct_cab = zcl_sepex_controle=>ler_cabs_por_status( iv_lgnum  = p_lgnum
                                                    it_status = lr_status
                                                    it_tknum  = s_tknum[] ).
-  DELETE ct_cab WHERE vbeln NOT IN s_vbeln.
+  DELETE ct_cab WHERE vbeln     NOT IN s_vbeln
+                   OR refnr     NOT IN s_refnr
+                   OR origem    NOT IN s_origem
+                   OR origem_id NOT IN s_origid
+                   OR dt_virt   NOT IN s_dtvirt.
+  PERFORM f_filtrar_cabs CHANGING ct_cab.
+ENDFORM.
+
+*&---------------------------------------------------------------------*
+*&      Form  F_FILTRAR_CABS
+*&---------------------------------------------------------------------*
+*  Filtros que não estão no cabeçalho: portão (cabeçalho ou, se vazio,
+*  remessa), material/lote dos itens e OT/UD de regularização. Vale para
+*  exibir, criar OTs e sincronizar, para as ações agirem só no filtrado.
+*----------------------------------------------------------------------*
+FORM f_filtrar_cabs CHANGING ct_cab TYPE zsepex_t_cab_tt.
+  DATA: ls_cab   TYPE zsepex_t_cab,
+        lt_itm   TYPE zsepex_t_itm_tt,
+        ls_itm   TYPE zsepex_t_itm,
+        lt_ot    TYPE zsepex_t_ot_tt,
+        ls_ot    TYPE zsepex_t_ot,
+        lv_lgtor TYPE lgtor,
+        lv_lgbzo TYPE lgbzo,
+        lv_ok    TYPE xfeld,
+        lv_idx   TYPE i.
+
+  IF s_lgtor[] IS INITIAL AND s_matnr[] IS INITIAL AND s_charg[] IS INITIAL
+     AND s_tanum[] IS INITIAL AND s_lenum[] IS INITIAL.
+    RETURN.
+  ENDIF.
+
+  LOOP AT ct_cab INTO ls_cab.
+    lv_idx = sy-tabix.
+    lv_ok  = 'X'.
+
+    IF s_lgtor[] IS NOT INITIAL.
+      lv_lgtor = ls_cab-lgtor.
+      IF lv_lgtor IS INITIAL.
+        zcl_sepex_wm=>ler_portao_remessa( EXPORTING iv_vbeln = ls_cab-vbeln
+                                          IMPORTING ev_lgtor = lv_lgtor
+                                                    ev_lgbzo = lv_lgbzo ).
+      ENDIF.
+      IF lv_lgtor NOT IN s_lgtor.
+        CLEAR lv_ok.
+      ENDIF.
+    ENDIF.
+
+    IF lv_ok = 'X' AND ( s_matnr[] IS NOT INITIAL OR s_charg[] IS NOT INITIAL ).
+      lt_itm = zcl_sepex_controle=>ler_itens( iv_lgnum = ls_cab-lgnum iv_vbeln = ls_cab-vbeln ).
+      CLEAR lv_ok.
+      LOOP AT lt_itm INTO ls_itm WHERE matnr IN s_matnr AND charg IN s_charg.
+        lv_ok = 'X'.
+        EXIT.
+      ENDLOOP.
+    ENDIF.
+
+    IF lv_ok = 'X' AND ( s_tanum[] IS NOT INITIAL OR s_lenum[] IS NOT INITIAL ).
+      lt_ot = zcl_sepex_controle=>ler_ots( iv_lgnum = ls_cab-lgnum iv_vbeln = ls_cab-vbeln ).
+      CLEAR lv_ok.
+      LOOP AT lt_ot INTO ls_ot WHERE tanum IN s_tanum AND vlenr IN s_lenum
+                                 AND matnr IN s_matnr AND charg IN s_charg.
+        lv_ok = 'X'.
+        EXIT.
+      ENDLOOP.
+    ENDIF.
+
+    IF lv_ok IS INITIAL.
+      DELETE ct_cab INDEX lv_idx.
+    ENDIF.
+  ENDLOOP.
 ENDFORM.
 
 *&---------------------------------------------------------------------*
@@ -238,6 +322,8 @@ FORM f_montar_saida.
         ls_saida TYPE ty_saida,
         lv_lgtor TYPE lgtor,
         lv_lgbzo TYPE lgbzo,
+        lv_idx   TYPE i,
+        lv_tem_ot TYPE xfeld,
         lt_saida_msg LIKE gt_saida.
 
   " Mensagens já acumuladas pelas ações ficam no fim
@@ -248,7 +334,22 @@ FORM f_montar_saida.
   LOOP AT lt_cab INTO ls_cab.
     lt_itm = zcl_sepex_controle=>ler_itens( iv_lgnum = ls_cab-lgnum iv_vbeln = ls_cab-vbeln ).
     lt_ot  = zcl_sepex_controle=>ler_ots( iv_lgnum = ls_cab-lgnum iv_vbeln = ls_cab-vbeln ).
-    DELETE lt_itm WHERE matnr NOT IN s_matnr.
+    DELETE lt_itm WHERE matnr NOT IN s_matnr OR charg NOT IN s_charg.
+    " OT / UD de regularização: fica só o item que tem OT no filtro
+    IF s_tanum[] IS NOT INITIAL OR s_lenum[] IS NOT INITIAL.
+      LOOP AT lt_itm INTO ls_itm.
+        lv_idx = sy-tabix.
+        CLEAR lv_tem_ot.
+        LOOP AT lt_ot INTO ls_ot WHERE vbeln = ls_itm-vbeln AND posnr = ls_itm-posnr
+                                   AND tanum IN s_tanum AND vlenr IN s_lenum.
+          lv_tem_ot = 'X'.
+          EXIT.
+        ENDLOOP.
+        IF lv_tem_ot IS INITIAL.
+          DELETE lt_itm INDEX lv_idx.
+        ENDIF.
+      ENDLOOP.
+    ENDIF.
     " Portão/zona: cabeçalho Express; registros antigos caem na remessa
     lv_lgtor = ls_cab-lgtor.
     lv_lgbzo = ls_cab-lgbzo.
@@ -281,6 +382,10 @@ FORM f_montar_saida.
       ls_saida-qtd_pend = ls_itm-menge - ls_itm-qtd_regul - ls_saida-qtd_em_ot.
       IF ls_saida-qtd_pend < 0.
         ls_saida-qtd_pend = 0.
+      ENDIF.
+      " Só itens em aberto: com saldo sem OT ou com OT ainda não confirmada
+      IF p_sopend = 'X' AND ls_saida-qtd_pend = 0 AND ls_saida-qtd_em_ot = 0.
+        CONTINUE.
       ENDIF.
       ls_saida-status_txt = zcl_sepex_controle=>texto_status( ls_itm-status ).
       SELECT SINGLE maktx FROM makt INTO ls_saida-maktx
