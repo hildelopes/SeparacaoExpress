@@ -19,7 +19,7 @@ abaplint.json          verificação de sintaxe (v740sp08) - 0 issues
 src/                   pacote ZSEPEX (abapGit)
 alteracoes/            trechos a aplicar em ZWMR0010, ZWM_ICENTROS,
                        ZTM_REG_TRANSFERENCIA e ZCL_ARMAZEM_GERAL (marcados "SEPEX")
-docs/                  especificação, análises, decisões e apresentação
+docs/                  especificação, análises, decisões, apresentação e requests (06_request_DERK989352.md)
 ```
 
 ### Dicionário (`src/`)
