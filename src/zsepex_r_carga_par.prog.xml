@@ -1,0 +1,170 @@
+<?xml version="1.0" encoding="utf-8"?>
+<abapGit version="v1.0.0" serializer="LCL_OBJECT_PROG" serializer_version="v1.0.0">
+ <asx:abap xmlns:asx="http://www.sap.com/abapxml" version="1.0">
+  <asx:values>
+   <PROGDIR>
+    <NAME>ZSEPEX_R_CARGA_PAR</NAME>
+    <SUBC>1</SUBC>
+    <FIXPT>X</FIXPT>
+    <UCCHECK>X</UCCHECK>
+   </PROGDIR>
+   <TPOOL>
+   <item>
+    <ID>R</ID>
+    <ENTRY>Separação Express - carga dos parâmetros (ZSEPEX_T_PAR / _LT)</ENTRY>
+    <LENGTH>61</LENGTH>
+   </item>
+   <item>
+    <ID>I</ID>
+    <KEY>001</KEY>
+    <ENTRY>ZSEPEX_T_PAR - parâmetros do depósito</ENTRY>
+    <LENGTH>132</LENGTH>
+   </item>
+   <item>
+    <ID>I</ID>
+    <KEY>002</KEY>
+    <ENTRY>ZSEPEX_T_PAR_LT - tipos de depósito de origem (prioridade na ordem)</ENTRY>
+    <LENGTH>132</LENGTH>
+   </item>
+   <item>
+    <ID>I</ID>
+    <KEY>003</KEY>
+    <ENTRY>Execução</ENTRY>
+    <LENGTH>132</LENGTH>
+   </item>
+   <item>
+    <ID>I</ID>
+    <KEY>C01</KEY>
+    <ENTRY>Deixe em branco os tipos não usados; a prioridade segue a ordem dos campos</ENTRY>
+    <LENGTH>132</LENGTH>
+   </item>
+   <item>
+    <ID>S</ID>
+    <KEY>P_ATIVO</KEY>
+    <ENTRY>Ativo</ENTRY>
+    <LENGTH>8</LENGTH>
+   </item>
+   <item>
+    <ID>S</ID>
+    <KEY>P_AVS</KEY>
+    <ENTRY>Tipo de depósito do avulso</ENTRY>
+    <LENGTH>26</LENGTH>
+   </item>
+   <item>
+    <ID>S</ID>
+    <KEY>P_BWLVS</KEY>
+    <ENTRY>Tipo mov. WM da regularização</ENTRY>
+    <LENGTH>29</LENGTH>
+   </item>
+   <item>
+    <ID>S</ID>
+    <KEY>P_DIAS</KEY>
+    <ENTRY>Dias para alerta</ENTRY>
+    <LENGTH>16</LENGTH>
+   </item>
+   <item>
+    <ID>S</ID>
+    <KEY>P_EMAIL</KEY>
+    <ENTRY>E-mail(s) de pendências</ENTRY>
+    <LENGTH>23</LENGTH>
+   </item>
+   <item>
+    <ID>S</ID>
+    <KEY>P_LGBER</KEY>
+    <ENTRY>Área virtual</ENTRY>
+    <LENGTH>12</LENGTH>
+   </item>
+   <item>
+    <ID>S</ID>
+    <KEY>P_LGNUM</KEY>
+    <ENTRY>Nº depósito</ENTRY>
+    <LENGTH>11</LENGTH>
+   </item>
+   <item>
+    <ID>S</ID>
+    <KEY>P_LGPLA</KEY>
+    <ENTRY>Posição virtual</ENTRY>
+    <LENGTH>15</LENGTH>
+   </item>
+   <item>
+    <ID>S</ID>
+    <KEY>P_LGTYP</KEY>
+    <ENTRY>Tipo de depósito virtual</ENTRY>
+    <LENGTH>24</LENGTH>
+   </item>
+   <item>
+    <ID>S</ID>
+    <KEY>P_LT1</KEY>
+    <ENTRY>Tipo de depósito 1</ENTRY>
+    <LENGTH>18</LENGTH>
+   </item>
+   <item>
+    <ID>S</ID>
+    <KEY>P_LT2</KEY>
+    <ENTRY>Tipo de depósito 2</ENTRY>
+    <LENGTH>18</LENGTH>
+   </item>
+   <item>
+    <ID>S</ID>
+    <KEY>P_LT3</KEY>
+    <ENTRY>Tipo de depósito 3</ENTRY>
+    <LENGTH>18</LENGTH>
+   </item>
+   <item>
+    <ID>S</ID>
+    <KEY>P_LT4</KEY>
+    <ENTRY>Tipo de depósito 4</ENTRY>
+    <LENGTH>18</LENGTH>
+   </item>
+   <item>
+    <ID>S</ID>
+    <KEY>P_LT5</KEY>
+    <ENTRY>Tipo de depósito 5</ENTRY>
+    <LENGTH>18</LENGTH>
+   </item>
+   <item>
+    <ID>S</ID>
+    <KEY>P_LTLIM</KEY>
+    <ENTRY>Remover tipos fora da lista</ENTRY>
+    <LENGTH>27</LENGTH>
+   </item>
+   <item>
+    <ID>S</ID>
+    <KEY>P_OTIME</KEY>
+    <ENTRY>OT de regularização imediata</ENTRY>
+    <LENGTH>28</LENGTH>
+   </item>
+   <item>
+    <ID>S</ID>
+    <KEY>P_PREFA</KEY>
+    <ENTRY>Prefixo fila RF avulso</ENTRY>
+    <LENGTH>22</LENGTH>
+   </item>
+   <item>
+    <ID>S</ID>
+    <KEY>P_PREFP</KEY>
+    <ENTRY>Prefixo fila RF paletes</ENTRY>
+    <LENGTH>23</LENGTH>
+   </item>
+   <item>
+    <ID>S</ID>
+    <KEY>P_REAB</KEY>
+    <ENTRY>Reabastecimento automático</ENTRY>
+    <LENGTH>26</LENGTH>
+   </item>
+   <item>
+    <ID>S</ID>
+    <KEY>P_TESTE</KEY>
+    <ENTRY>Modo teste (não grava)</ENTRY>
+    <LENGTH>22</LENGTH>
+   </item>
+   <item>
+    <ID>S</ID>
+    <KEY>P_UDPAR</KEY>
+    <ENTRY>UD parcial de posição</ENTRY>
+    <LENGTH>21</LENGTH>
+   </item>
+   </TPOOL>
+  </asx:values>
+ </asx:abap>
+</abapGit>
